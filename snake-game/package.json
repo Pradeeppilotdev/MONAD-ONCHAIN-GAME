@@ -1,0 +1,15 @@
+﻿{
+  "name": "monad-snake-game",
+  "version": "1.0.0",
+  "description": "Snake game on Monad testnet",
+  "scripts": {
+    "start": "npx serve ."
+  },
+  "dependencies": {
+    "ethers": "^5.7.2",
+    "phaser": "^3.55.2"
+  },
+  "devDependencies": {
+    "serve": "^14.2.1"
+  }
+}
