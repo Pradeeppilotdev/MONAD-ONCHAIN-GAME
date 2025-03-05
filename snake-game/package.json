@@ -1,4 +1,4 @@
-﻿{
+{
   "name": "monad-snake-game",
   "version": "1.0.0",
   "description": "Snake game on Monad testnet",
@@ -7,9 +7,7 @@
   },
   "dependencies": {
     "ethers": "^5.7.2",
-    "phaser": "^3.55.2"
-  },
-  "devDependencies": {
+    "phaser": "^3.55.2",
     "serve": "^14.2.1"
   }
 }
