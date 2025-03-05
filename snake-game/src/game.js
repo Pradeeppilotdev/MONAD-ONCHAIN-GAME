@@ -25,8 +25,8 @@ let moveTime = 0;
 const MOVE_DELAY = 100; // Controls snake speed
 
 function preload() {
-    this.load.image('molandak', './assets/molandak.png');
-    this.load.image('moyaki', './assets/moyaki.png');
+    this.load.image('molandak', 'snake-game/assets/molandak.png');
+    this.load.image('moyaki', 'snake-game/assets/moyaki.png');
 }
 
 function create() {
