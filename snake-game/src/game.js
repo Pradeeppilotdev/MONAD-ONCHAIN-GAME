@@ -4,10 +4,6 @@
     height: 600,
     backgroundColor: '#2d2d2d',
     parent: 'game',
-    physics: {
-        default: 'arcade',
-        arcade: { debug: false }
-    },
     scene: {
         preload: preload,
         create: create,
@@ -19,36 +15,29 @@ const game = new Phaser.Game(config);
 
 let snake, moyaki, cursors, score = 0, scoreText;
 let snakeSegments = [];
+let lastDirection = 'right';
+let gameOver = false;
+let gameOverText;
+
+// Grid settings
+const GRID_SIZE = 20;
+let moveTime = 0;
+const MOVE_DELAY = 100; // Controls snake speed
 
 function preload() {
-    // Create simple colored rectangles instead of loading images
-    const graphics = this.add.graphics();
-    
-    // Create purple square for snake
-    graphics.fillStyle(0x800080);
-    graphics.fillRect(0, 0, 20, 20);
-    graphics.generateTexture('molandak', 20, 20);
-    graphics.clear();
-    
-    // Create yellow square for moyaki
-    graphics.fillStyle(0xFFFF00);
-    graphics.fillRect(0, 0, 10, 10);
-    graphics.generateTexture('moyaki', 10, 10);
-    graphics.destroy();
+    this.load.image('molandak', './assets/molandak.png');
+    this.load.image('moyaki', './assets/moyaki.png');
 }
 
 function create() {
     // Initialize snake head
-    snake = this.physics.add.sprite(400, 300, 'molandak');
-    snake.setCollideWorldBounds(true);
+    snake = this.add.sprite(400, 300, 'molandak');
+    snake.setScale(0.25);
     snakeSegments = [snake];
 
-    // Initialize moyaki
-    moyaki = this.physics.add.sprite(
-        Phaser.Math.Between(100, 700),
-        Phaser.Math.Between(100, 500),
-        'moyaki'
-    );
+    // Initialize food
+    moyaki = this.add.sprite(200, 200, 'moyaki');
+    moyaki.setScale(0.25);
 
     // Add score text
     scoreText = this.add.text(16, 16, 'Score: 0', { 
@@ -59,56 +48,133 @@ function create() {
     // Setup keyboard controls
     cursors = this.input.keyboard.createCursorKeys();
 
-    // Add collision detection
-    this.physics.add.overlap(snake, moyaki, eatMoyaki, null, this);
+    // Initialize direction
+    snake.direction = { x: 1, y: 0 };
 }
 
-function update() {
+function update(time) {
+    if (gameOver) return;
+
     // Handle keyboard input
-    if (cursors.left.isDown) {
-        snake.setVelocity(-200, 0);
+    if (cursors.left.isDown && lastDirection !== 'right') {
+        snake.direction = { x: -1, y: 0 };
+        lastDirection = 'left';
     }
-    else if (cursors.right.isDown) {
-        snake.setVelocity(200, 0);
+    else if (cursors.right.isDown && lastDirection !== 'left') {
+        snake.direction = { x: 1, y: 0 };
+        lastDirection = 'right';
     }
-    else if (cursors.up.isDown) {
-        snake.setVelocity(0, -200);
+    else if (cursors.up.isDown && lastDirection !== 'down') {
+        snake.direction = { x: 0, y: -1 };
+        lastDirection = 'up';
     }
-    else if (cursors.down.isDown) {
-        snake.setVelocity(0, 200);
+    else if (cursors.down.isDown && lastDirection !== 'up') {
+        snake.direction = { x: 0, y: 1 };
+        lastDirection = 'down';
     }
 
-    // Wrap around screen edges
-    if (snake.x > 800) snake.x = 0;
-    if (snake.x < 0) snake.x = 800;
-    if (snake.y > 600) snake.y = 0;
-    if (snake.y < 0) snake.y = 600;
+    // Move snake on grid
+    if (time >= moveTime) {
+        moveTime = time + MOVE_DELAY;
 
-    // Update snake segments
-    for (let i = snakeSegments.length - 1; i > 0; i--) {
-        snakeSegments[i].x = snakeSegments[i - 1].x;
-        snakeSegments[i].y = snakeSegments[i - 1].y;
+        // Store previous positions
+        let prevX = snake.x;
+        let prevY = snake.y;
+
+        // Move head
+        snake.x += snake.direction.x * GRID_SIZE;
+        snake.y += snake.direction.y * GRID_SIZE;
+
+        // Move body segments
+        for (let i = 1; i < snakeSegments.length; i++) {
+            const tempX = snakeSegments[i].x;
+            const tempY = snakeSegments[i].y;
+            snakeSegments[i].x = prevX;
+            snakeSegments[i].y = prevY;
+            prevX = tempX;
+            prevY = tempY;
+        }
+
+        // Check wall collision
+        if (snake.x < 0 || snake.x > 800 || snake.y < 0 || snake.y > 600) {
+            endGame(this);
+            return;
+        }
+
+        // Check self collision
+        for (let i = 1; i < snakeSegments.length; i++) {
+            if (snake.x === snakeSegments[i].x && snake.y === snakeSegments[i].y) {
+                endGame(this);
+                return;
+            }
+        }
+
+        // Check food collision
+        if (Math.abs(snake.x - moyaki.x) < GRID_SIZE && Math.abs(snake.y - moyaki.y) < GRID_SIZE) {
+            // Add new segment
+            const lastSegment = snakeSegments[snakeSegments.length - 1];
+            const newSegment = this.add.sprite(lastSegment.x, lastSegment.y, 'molandak');
+            newSegment.setScale(0.25);
+            snakeSegments.push(newSegment);
+
+            // Move food to new grid position
+            moyaki.x = Phaser.Math.Between(2, 38) * GRID_SIZE;
+            moyaki.y = Phaser.Math.Between(2, 28) * GRID_SIZE;
+
+            // Update score
+            score += 10;
+            scoreText.setText('Score: ' + score);
+
+            // Record score on blockchain if available
+            if (typeof recordMoyakiEaten === 'function') {
+                recordMoyakiEaten(10);
+            }
+        }
     }
 }
 
-function eatMoyaki(snake, moyaki) {
-    // Move moyaki to new random position
-    moyaki.setPosition(
-        Phaser.Math.Between(100, 700),
-        Phaser.Math.Between(100, 500)
-    );
+function endGame(scene) {
+    gameOver = true;
 
-    // Update score
-    score += 10;
-    scoreText.setText('Score: ' + score);
+    // Update blockchain score if available
+    if (typeof updateHighScore === 'function') {
+        updateHighScore(score).then(() => {
+            if (typeof displayScoreHistory === 'function') {
+                displayScoreHistory();
+            }
+        });
+    }
 
-    // Add new segment to snake
-    const lastSegment = snakeSegments[snakeSegments.length - 1];
-    const newSegment = this.physics.add.sprite(lastSegment.x, lastSegment.y, 'molandak');
-    snakeSegments.push(newSegment);
+    gameOverText = scene.add.text(400, 300, 'Game Over!\nClick to restart', {
+        fontSize: '64px',
+        fill: '#fff',
+        align: 'center'
+    }).setOrigin(0.5);
 
-    // Call blockchain function if it exists
-    if (typeof recordMoyakiEaten === 'function') {
-        recordMoyakiEaten(10);
+    scene.input.once('pointerdown', () => restartGame(scene));
+}
+
+function restartGame(scene) {
+    gameOver = false;
+    score = 0;
+    lastDirection = 'right';
+    scoreText.setText('Score: 0');
+
+    // Clear snake segments
+    for (let i = 1; i < snakeSegments.length; i++) {
+        snakeSegments[i].destroy();
+    }
+    snakeSegments = [snake];
+
+    // Reset positions
+    snake.x = 400;
+    snake.y = 300;
+    snake.direction = { x: 1, y: 0 };
+    moyaki.x = 200;
+    moyaki.y = 200;
+    moveTime = 0;
+
+    if (gameOverText) {
+        gameOverText.destroy();
     }
 }

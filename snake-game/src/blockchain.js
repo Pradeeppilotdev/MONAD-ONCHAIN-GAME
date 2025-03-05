@@ -9,20 +9,38 @@ const abi = [
 ];
 
 let provider, signer, contract;
+let isConnected = false;
 
-async function initBlockchain() {
+async function connectWallet() {
     if (window.ethereum) {
-        provider = new ethers.providers.Web3Provider(window.ethereum);
-        await provider.send("eth_requestAccounts", []);
-        signer = provider.getSigner();
-        contract = new ethers.Contract(contractAddress, abi, signer);
-        console.log("Connected to Monad testnet");
+        try {
+            provider = new ethers.providers.Web3Provider(window.ethereum);
+            await provider.send("eth_requestAccounts", []);
+            signer = provider.getSigner();
+            contract = new ethers.Contract(contractAddress, abi, signer);
+            
+            const address = await signer.getAddress();
+            document.getElementById('walletInfo').textContent = 
+                `Connected: ${address.substring(0, 6)}...${address.substring(38)}`;
+            
+            isConnected = true;
+            displayScoreHistory();
+            
+            // Enable game elements
+            document.getElementById('game').style.opacity = '1';
+            document.getElementById('connectButton').textContent = 'Connected';
+            
+        } catch (error) {
+            console.error("Error connecting wallet:", error);
+        }
     } else {
-        console.log("Please install MetaMask!");
+        alert("Please install MetaMask!");
     }
 }
 
 async function recordMoyakiEaten(points) {
+    if (!isConnected) return;
+    
     try {
         const tx = await contract.eatMoyaki(points);
         await tx.wait();
@@ -33,14 +51,35 @@ async function recordMoyakiEaten(points) {
 }
 
 async function updateHighScore(score) {
+    if (!isConnected) return;
+    
     try {
         const tx = await contract.updateScore(score);
         await tx.wait();
         console.log(`High score updated: ${score}`);
+        displayScoreHistory();
     } catch (error) {
         console.error("Error updating high score:", error);
     }
 }
 
-// Initialize blockchain connection
-window.addEventListener("load", initBlockchain);
+async function displayScoreHistory() {
+    if (!isConnected) return;
+    
+    try {
+        const address = await signer.getAddress();
+        const score = await contract.getHighScore(address);
+        
+        const scoresDiv = document.getElementById('scores');
+        scoresDiv.innerHTML = `<p>High Score: ${score}</p>`;
+        
+    } catch (error) {
+        console.error("Error fetching score history:", error);
+    }
+}
+
+// Initialize wallet connection button
+document.getElementById('connectButton').addEventListener('click', connectWallet);
+
+// Initially disable game until wallet is connected
+document.getElementById('game').style.opacity = '0.5';
