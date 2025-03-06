@@ -25,7 +25,7 @@ let moveTime = 0;
 const MOVE_DELAY = 100; // Controls snake speed
 
 function preload() {
-    this.load.image('molandak', 'snake-game/assets/molandak.png');
+    this.load.image('molandak', 'snake-game/assets/molandak2.png');
     this.load.image('moyaki', 'snake-game/assets/moyaki.png');
 }
 
@@ -109,50 +109,61 @@ function update(time) {
             }
         }
 
-        // Check food collision
-        if (Math.abs(snake.x - moyaki.x) < GRID_SIZE && Math.abs(snake.y - moyaki.y) < GRID_SIZE) {
-            // Add new segment
-            const lastSegment = snakeSegments[snakeSegments.length - 1];
-            const newSegment = this.add.sprite(lastSegment.x, lastSegment.y, 'molandak');
-            newSegment.setScale(0.25);
-            snakeSegments.push(newSegment);
+ // ... existing code ...
 
-            // Move food to new grid position
-            moyaki.x = Phaser.Math.Between(2, 38) * GRID_SIZE;
-            moyaki.y = Phaser.Math.Between(2, 28) * GRID_SIZE;
+// Check food collision
+if (Math.abs(snake.x - moyaki.x) < GRID_SIZE && Math.abs(snake.y - moyaki.y) < GRID_SIZE) {
+    // Add new segment
+    const lastSegment = snakeSegments[snakeSegments.length - 1];
+    const newSegment = this.add.sprite(lastSegment.x, lastSegment.y, 'molandak');
+    newSegment.setScale(0.25);
+    snakeSegments.push(newSegment);
 
-            // Update score
-            score += 10;
-            scoreText.setText('Score: ' + score);
+    // Move food to new grid position
+    moyaki.x = Phaser.Math.Between(2, 38) * GRID_SIZE;
+    moyaki.y = Phaser.Math.Between(2, 28) * GRID_SIZE;
 
-            // Record score on blockchain if available
-            if (typeof recordMoyakiEaten === 'function') {
-                recordMoyakiEaten(10);
-            }
-        }
-    }
+    // Update score
+    score += 10;
+    scoreText.setText('Score: ' + score);
+
+    // REMOVE THIS SECTION - Don't record score on blockchain when eating food
+    // if (typeof recordMoyakiEaten === 'function') {
+    //     recordMoyakiEaten(10);
+    // }
 }
+// ... existing code ...
 
 function endGame(scene) {
     gameOver = true;
 
-    // Update blockchain score if available
-    if (typeof updateHighScore === 'function') {
-        updateHighScore(score).then(() => {
-            if (typeof displayScoreHistory === 'function') {
-                displayScoreHistory();
-            }
-        });
-    }
-
-    gameOverText = scene.add.text(400, 300, 'Game Over!\nClick to restart', {
+    // Show game over message
+    gameOverText = scene.add.text(400, 300, 'Game Over!\nClick to submit score', {
         fontSize: '64px',
         fill: '#fff',
         align: 'center'
     }).setOrigin(0.5);
 
-    scene.input.once('pointerdown', () => restartGame(scene));
+    // Add click handler to submit score and restart
+    scene.input.once('pointerdown', () => {
+        // Update blockchain score if available
+        if (typeof updateHighScore === 'function') {
+            updateHighScore(score).then(() => {
+                if (typeof displayScoreHistory === 'function') {
+                    displayScoreHistory();
+                }
+                restartGame(scene);
+            }).catch(error => {
+                console.error("Error updating score:", error);
+                restartGame(scene);
+            });
+        } else {
+            restartGame(scene);
+        }
+    });
 }
+
+// ... rest of the code remains the same ...
 
 function restartGame(scene) {
     gameOver = false;

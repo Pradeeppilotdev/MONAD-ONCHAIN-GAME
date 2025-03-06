@@ -1,5 +1,5 @@
 ﻿// Replace with your deployed contract address
-const contractAddress = "YOUR_CONTRACT_ADDRESS_HERE";
+const contractAddress = "0x51fC5B331290c52FfdbFD0CA3896D04063dB4e40";
 
 const abi = [
     "function updateScore(uint256 _score) external",
@@ -17,8 +17,15 @@ async function connectWallet() {
             provider = new ethers.providers.Web3Provider(window.ethereum);
             await provider.send("eth_requestAccounts", []);
             signer = provider.getSigner();
+            const network = await provider.getNetwork();
+
+            // Check if the user is on the Monad Testnet
+            if (network.chainId !== 10143) {
+                alert("Please switch to the Monad Testnet.");
+                return;
+            }
+
             contract = new ethers.Contract(contractAddress, abi, signer);
-            
             const address = await signer.getAddress();
             document.getElementById('walletInfo').textContent = 
                 `Connected: ${address.substring(0, 6)}...${address.substring(38)}`;
@@ -38,31 +45,29 @@ async function connectWallet() {
     }
 }
 
-async function recordMoyakiEaten(points) {
-    if (!isConnected) return;
-    
-    try {
-        const tx = await contract.eatMoyaki(points);
-        await tx.wait();
-        console.log(`Moyaki eaten recorded: ${points} points`);
-    } catch (error) {
-        console.error("Error recording Moyaki eaten:", error);
-    }
-}
+
 
 async function updateHighScore(score) {
-    if (!isConnected) return;
+    if (!isConnected){
+        alert("Please connect your wallet first!");
+        return Promise.reject("Wallet not connected");
+    };
     
     try {
+        // Show a message to the user
+        alert(`Submitting your score of ${score} to the blockchain. Please confirm the transaction in MetaMask.`);
+        
         const tx = await contract.updateScore(score);
         await tx.wait();
         console.log(`High score updated: ${score}`);
-        displayScoreHistory();
+        alert("Score successfully recorded on the blockchain!");
+        return Promise.resolve();
     } catch (error) {
         console.error("Error updating high score:", error);
+        alert("Failed to record score. Please try again.");
+        return Promise.reject(error);
     }
 }
-
 async function displayScoreHistory() {
     if (!isConnected) return;
     
