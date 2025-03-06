@@ -5,7 +5,7 @@ const abi = [
     "function updateScore(uint256 _score) external",
     "function eatMoyaki(uint256 _points) external",
     "function getHighScore(address _player) external view returns (uint256)",
-    "event MoyakiEaten(address indexed player, uint256 points)"
+    "event MoyakiEaten(address indexed player, uint256 points)"//made it with care haha
 ];
 
 let provider, signer, contract;
