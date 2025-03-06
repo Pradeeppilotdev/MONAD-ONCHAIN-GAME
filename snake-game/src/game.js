@@ -108,6 +108,7 @@ function update(time) {
                 return;
             }
         }
+    }
 
  // ... existing code ...
 
@@ -188,4 +189,5 @@ function restartGame(scene) {
     if (gameOverText) {
         gameOverText.destroy();
     }
+}
 }
