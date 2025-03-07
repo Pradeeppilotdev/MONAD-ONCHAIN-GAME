@@ -1,5 +1,5 @@
 // Replace with your deployed contract address
-const contractAddress = "YOUR_CONTRACT_ADDRESS_HERE";
+const contractAddress = "0x51fC5B331290c52FfdbFD0CA3896D04063dB4e40";
 
 const abi = [
     "function updateScore(uint256 _score) external",
@@ -15,11 +15,10 @@ async function connectWallet() {
             provider = new ethers.providers.Web3Provider(window.ethereum);
             await provider.send("eth_requestAccounts", []);
             signer = provider.getSigner();
-            
-            // Check if the user is on the Monad Testnet
             const network = await provider.getNetwork();
+
+            // Check if the user is on the Monad Testnet
             if (network.chainId !== 10143) {
-                // Show network switch instructions
                 alert("Please switch to the Monad Testnet:\n\nNetwork Name: Monad Testnet\nChain ID: 10143\nRPC URL: https://testnet-rpc.monad.xyz/\nBlock Explorer: https://testnet.monadexplorer.com/\nCurrency Symbol: MON");
                 return;
             }
@@ -38,10 +37,9 @@ async function connectWallet() {
             
         } catch (error) {
             console.error("Error connecting wallet:", error);
-            alert("Error connecting wallet. Please make sure MetaMask is installed and unlocked.");
         }
     } else {
-        alert("Please install MetaMask to play this game!");
+        alert("Please install MetaMask!");
     }
 }
 
@@ -75,25 +73,15 @@ async function displayScoreHistory() {
         const score = await contract.getHighScore(address);
         
         const scoresDiv = document.getElementById('scores');
-        if (scoresDiv) {
-            scoresDiv.innerHTML = `<p>High Score: ${score}</p>`;
-        }
+        scoresDiv.innerHTML = `<p>High Score: ${score}</p>`;
+        
     } catch (error) {
         console.error("Error fetching score history:", error);
     }
 }
 
 // Initialize wallet connection button
-document.addEventListener('DOMContentLoaded', () => {
-    const connectButton = document.getElementById('connectButton');
-    if (connectButton) {
-        connectButton.addEventListener('click', connectWallet);
-    }
-    
-    // Initially disable game until wallet is connected
-    const gameElement = document.getElementById('game');
-    if (gameElement) {
-        gameElement.style.opacity = '0.5';
-    }
-}); 
-initBlockchain(); 
+document.getElementById('connectButton').addEventListener('click', connectWallet);
+
+// Initially disable game until wallet is connected
+document.getElementById('game').style.opacity = '0.5'; 

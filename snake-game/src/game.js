@@ -18,6 +18,8 @@ let snakeSegments = [];
 let lastDirection = 'right';
 let gameOver = false;
 let gameOverText;
+let isPaused = true; // Game starts paused
+let pauseText;
 
 // Grid settings
 const GRID_SIZE = 20;
@@ -50,10 +52,22 @@ function create() {
 
     // Initialize direction
     snake.direction = { x: 1, y: 0 };
+
+    // Add pause/start text
+    pauseText = this.add.text(400, 300, 'Press SPACE to Start', {
+        fontSize: '48px',
+        fill: '#fff',
+        align: 'center'
+    }).setOrigin(0.5);
+
+    // Add space key for pause/resume
+    this.input.keyboard.on('keydown-SPACE', function() {
+        togglePause(this);
+    }, this);
 }
 
 function update(time) {
-    if (gameOver) return;
+    if (gameOver || isPaused) return;
 
     // Handle keyboard input
     if (cursors.left.isDown && lastDirection !== 'right') {
@@ -108,42 +122,57 @@ function update(time) {
                 return;
             }
         }
+
+        // Check food collision
+        if (Math.abs(snake.x - moyaki.x) < GRID_SIZE && Math.abs(snake.y - moyaki.y) < GRID_SIZE) {
+            // Add new segment
+            const lastSegment = snakeSegments[snakeSegments.length - 1];
+            const newSegment = this.add.sprite(lastSegment.x, lastSegment.y, 'molandak');
+            newSegment.setScale(0.25);
+            snakeSegments.push(newSegment);
+
+            // Move food to new grid position
+            moyaki.x = Phaser.Math.Between(2, 38) * GRID_SIZE;
+            moyaki.y = Phaser.Math.Between(2, 28) * GRID_SIZE;
+
+            // Update score
+            score += 10;
+            scoreText.setText('Score: ' + score);
+        }
     }
-
- // ... existing code ...
-
-// Check food collision
-if (Math.abs(snake.x - moyaki.x) < GRID_SIZE && Math.abs(snake.y - moyaki.y) < GRID_SIZE) {
-    // Add new segment
-    const lastSegment = snakeSegments[snakeSegments.length - 1];
-    const newSegment = this.add.sprite(lastSegment.x, lastSegment.y, 'molandak');
-    newSegment.setScale(0.25);
-    snakeSegments.push(newSegment);
-
-    // Move food to new grid position
-    moyaki.x = Phaser.Math.Between(2, 38) * GRID_SIZE;
-    moyaki.y = Phaser.Math.Between(2, 28) * GRID_SIZE;
-
-    // Update score
-    score += 10;
-    scoreText.setText('Score: ' + score);
-
-    // REMOVE THIS SECTION - Don't record score on blockchain when eating food
-    // if (typeof recordMoyakiEaten === 'function') {
-    //     recordMoyakiEaten(10);
-    // }
 }
-// ... existing code ...
+
+function togglePause(scene) {
+    isPaused = !isPaused;
+    
+    if (isPaused) {
+        // Show pause text
+        pauseText.setText('PAUSED\nPress SPACE to Resume');
+        pauseText.setVisible(true);
+    } else {
+        // Hide pause text
+        pauseText.setVisible(false);
+    }
+}
 
 function endGame(scene) {
     gameOver = true;
+    isPaused = true;
 
     // Show game over message
+    if (gameOverText) {
+        gameOverText.destroy();
+    }
     gameOverText = scene.add.text(400, 300, 'Game Over!\nClick to submit score', {
         fontSize: '64px',
         fill: '#fff',
         align: 'center'
     }).setOrigin(0.5);
+
+    // Hide pause text if visible
+    if (pauseText) {
+        pauseText.setVisible(false);
+    }
 
     // Add click handler to submit score and restart
     scene.input.once('pointerdown', () => {
@@ -164,10 +193,9 @@ function endGame(scene) {
     });
 }
 
-// ... rest of the code remains the same ...
-
 function restartGame(scene) {
     gameOver = false;
+    isPaused = true; // Start paused
     score = 0;
     lastDirection = 'right';
     scoreText.setText('Score: 0');
@@ -188,6 +216,10 @@ function restartGame(scene) {
 
     if (gameOverText) {
         gameOverText.destroy();
+        gameOverText = null;
     }
-}
+
+    // Show start message
+    pauseText.setText('Press SPACE to Start');
+    pauseText.setVisible(true);
 }

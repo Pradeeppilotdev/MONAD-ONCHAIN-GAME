@@ -18,6 +18,8 @@ let snakeSegments = [];
 let lastDirection = 'right';
 let gameOver = false;
 let gameOverText;
+let isPaused = true; // Game starts paused
+let pauseText;
 
 // Grid settings
 const GRID_SIZE = 20;
@@ -50,10 +52,22 @@ function create() {
 
     // Initialize direction
     snake.direction = { x: 1, y: 0 };
+
+    // Add pause/start text
+    pauseText = this.add.text(400, 300, 'Press SPACE to Start', {
+        fontSize: '48px',
+        fill: '#fff',
+        align: 'center'
+    }).setOrigin(0.5);
+
+    // Add space key for pause/resume
+    this.input.keyboard.on('keydown-SPACE', function() {
+        togglePause(this);
+    }, this);
 }
 
 function update(time) {
-    if (gameOver) return;
+    if (gameOver || isPaused) return;
 
     // Handle keyboard input
     if (cursors.left.isDown && lastDirection !== 'right') {
@@ -111,30 +125,40 @@ function update(time) {
 
         // Check food collision
         if (Math.abs(snake.x - moyaki.x) < GRID_SIZE && Math.abs(snake.y - moyaki.y) < GRID_SIZE) {
-            collectFood(this);
+            // Add new segment
+            const lastSegment = snakeSegments[snakeSegments.length - 1];
+            const newSegment = this.add.sprite(lastSegment.x, lastSegment.y, 'molandak');
+            newSegment.setScale(0.25);
+            snakeSegments.push(newSegment);
+
+            // Move food to new grid position
+            moyaki.x = Phaser.Math.Between(2, 38) * GRID_SIZE;
+            moyaki.y = Phaser.Math.Between(2, 28) * GRID_SIZE;
+
+            // Update score
+            score += 10;
+            scoreText.setText('Score: ' + score);
         }
     }
 }
 
-function collectFood(scene) {
-    // Move food to new grid position
-    moyaki.x = Phaser.Math.Between(2, 38) * GRID_SIZE;
-    moyaki.y = Phaser.Math.Between(2, 28) * GRID_SIZE;
-
-    // Update score
-    score += 10;
-    scoreText.setText('Score: ' + score);
-
-    // Add new segment to snake
-    const lastSegment = snakeSegments[snakeSegments.length - 1];
-    const newSegment = scene.add.sprite(lastSegment.x, lastSegment.y, 'molandak');
-    newSegment.setScale(0.25);
-    snakeSegments.push(newSegment);
+function togglePause(scene) {
+    isPaused = !isPaused;
+    
+    if (isPaused) {
+        // Show pause text
+        pauseText.setText('PAUSED\nPress SPACE to Resume');
+        pauseText.setVisible(true);
+    } else {
+        // Hide pause text
+        pauseText.setVisible(false);
+    }
 }
 
 function endGame(scene) {
     gameOver = true;
-    
+    isPaused = true;
+
     // Show game over message
     if (gameOverText) {
         gameOverText.destroy();
@@ -144,6 +168,11 @@ function endGame(scene) {
         fill: '#fff',
         align: 'center'
     }).setOrigin(0.5);
+
+    // Hide pause text if visible
+    if (pauseText) {
+        pauseText.setVisible(false);
+    }
 
     // Add click handler to submit score and restart
     scene.input.once('pointerdown', () => {
@@ -166,6 +195,7 @@ function endGame(scene) {
 
 function restartGame(scene) {
     gameOver = false;
+    isPaused = true; // Start paused
     score = 0;
     lastDirection = 'right';
     scoreText.setText('Score: 0');
@@ -188,4 +218,8 @@ function restartGame(scene) {
         gameOverText.destroy();
         gameOverText = null;
     }
+
+    // Show start message
+    pauseText.setText('Press SPACE to Start');
+    pauseText.setVisible(true);
 }

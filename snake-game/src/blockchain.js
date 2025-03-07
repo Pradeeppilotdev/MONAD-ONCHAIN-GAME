@@ -3,9 +3,7 @@ const contractAddress = "0x51fC5B331290c52FfdbFD0CA3896D04063dB4e40";
 
 const abi = [
     "function updateScore(uint256 _score) external",
-    "function eatMoyaki(uint256 _points) external",
-    "function getHighScore(address _player) external view returns (uint256)",
-    "event MoyakiEaten(address indexed player, uint256 points)"//made it with care haha
+    "function getHighScore(address _player) external view returns (uint256)"
 ];
 
 let provider, signer, contract;
@@ -21,7 +19,7 @@ async function connectWallet() {
 
             // Check if the user is on the Monad Testnet
             if (network.chainId !== 10143) {
-                alert("Please switch to the Monad Testnet.");
+                alert("Please switch to the Monad Testnet:\n\nNetwork Name: Monad Testnet\nChain ID: 10143\nRPC URL: https://testnet-rpc.monad.xyz/\nBlock Explorer: https://testnet.monadexplorer.com/\nCurrency Symbol: MON");
                 return;
             }
 
@@ -45,13 +43,11 @@ async function connectWallet() {
     }
 }
 
-
-
 async function updateHighScore(score) {
-    if (!isConnected){
+    if (!isConnected) {
         alert("Please connect your wallet first!");
         return Promise.reject("Wallet not connected");
-    };
+    }
     
     try {
         // Show a message to the user
@@ -68,6 +64,7 @@ async function updateHighScore(score) {
         return Promise.reject(error);
     }
 }
+
 async function displayScoreHistory() {
     if (!isConnected) return;
     
