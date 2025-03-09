@@ -20,6 +20,7 @@ let gameOver = false;
 let gameOverText;
 let isPaused = true; // Game starts paused
 let pauseText;
+let walletConnected = false; // Track wallet connection status
 
 // Grid settings
 const GRID_SIZE = 20;
@@ -54,7 +55,7 @@ function create() {
     snake.direction = { x: 1, y: 0 };
 
     // Add pause/start text
-    pauseText = this.add.text(400, 300, 'Press SPACE to Start', {
+    pauseText = this.add.text(400, 300, 'Connect Wallet to Play', {
         fontSize: '48px',
         fill: '#fff',
         align: 'center'
@@ -62,12 +63,24 @@ function create() {
 
     // Add space key for pause/resume
     this.input.keyboard.on('keydown-SPACE', function() {
-        togglePause(this);
+        // Only allow toggling pause if wallet is connected
+        if (walletConnected) {
+            togglePause(this);
+        } else {
+            pauseText.setText('Connect Wallet to Play');
+        }
     }, this);
+
+    // Listen for wallet connection event
+    window.addEventListener('walletConnected', function() {
+        walletConnected = true;
+        pauseText.setText('Press SPACE to Start');
+    });
 }
 
 function update(time) {
-    if (gameOver || isPaused) return;
+    // Don't update if game is over, paused, or wallet not connected
+    if (gameOver || isPaused || !walletConnected) return;
 
     // Handle keyboard input
     if (cursors.left.isDown && lastDirection !== 'right') {
@@ -143,6 +156,9 @@ function update(time) {
 }
 
 function togglePause(scene) {
+    // Only allow toggling if wallet is connected
+    if (!walletConnected) return;
+    
     isPaused = !isPaused;
     
     if (isPaused) {
@@ -223,3 +239,12 @@ function restartGame(scene) {
     pauseText.setText('Press SPACE to Start');
     pauseText.setVisible(true);
 }
+
+// Function to be called from blockchain.js when wallet is connected
+function setWalletConnected() {
+    walletConnected = true;
+    pauseText.setText('Press SPACE to Start');
+}
+
+// Expose the function globally
+window.setWalletConnected = setWalletConnected;

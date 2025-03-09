@@ -55,6 +55,14 @@ async function connectWallet() {
             document.getElementById('game').style.opacity = '1';
             document.getElementById('connectButton').textContent = 'Connected';
             
+            // Notify the game that wallet is connected
+            if (typeof window.setWalletConnected === 'function') {
+                window.setWalletConnected();
+            }
+            
+            // Also dispatch an event for more flexibility
+            window.dispatchEvent(new Event('walletConnected'));
+            
         } catch (error) {
             console.error("Error connecting wallet:", error);
             alert("Error connecting wallet. Please make sure MetaMask is installed and unlocked.");
