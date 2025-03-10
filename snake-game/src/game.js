@@ -28,11 +28,31 @@ let moveTime = 0;
 const MOVE_DELAY = 100; // Controls snake speed
 
 function preload() {
-    this.load.image('molandak', 'snake-game/assets/molandak2.png');
-    this.load.image('moyaki', 'snake-game/assets/moyaki.png');
+    this.load.image('molandak', 'snake-game/assets/molandak3.png');
+    this.load.image('moyaki', 'snake-game/assets/moyaki3.png');
+    this.load.image('chog', 'snake-game/assets/chog.png');  // Add new image
+    this.load.image('gridbg', 'snake-game/assets/gridbg.png');
 }
 
 function create() {
+    // Create a custom grey grid background
+    const graphics = this.add.graphics();
+    graphics.lineStyle(1, 0x666666, 0.3); // Line width, grey color (0x666666), alpha 0.3
+    
+    // Draw vertical grid lines
+    for (let x = 0; x <= config.width; x += GRID_SIZE) {
+        graphics.moveTo(x, 0);
+        graphics.lineTo(x, config.height);
+    }
+    
+    // Draw horizontal grid lines
+    for (let y = 0; y <= config.height; y += GRID_SIZE) {
+        graphics.moveTo(0, y);
+        graphics.lineTo(config.width, y);
+    }
+    
+    graphics.strokePath();
+    
     // Initialize snake head
     snake = this.add.sprite(400, 300, 'molandak');
     snake.setScale(0.25);
@@ -148,16 +168,28 @@ function update(time) {
             moyaki.x = Phaser.Math.Between(2, 38) * GRID_SIZE;
             moyaki.y = Phaser.Math.Between(2, 28) * GRID_SIZE;
 
-            // Update score
-            score += 10;
+            // Update score and handle special food
+            if (score % 100 === 90 && moyaki.texture.key !== 'chog') {
+                // Change to chog at next multiple of 100 (current + 10)
+                moyaki.setTexture('chog');
+                score += 10;
+            } else if (moyaki.texture.key === 'chog') {
+                // Special reward for catching chog
+                score += 20;
+                moyaki.setTexture('moyaki');
+            } else {
+                // Normal score increase
+                score += 10;
+            }
+            
             scoreText.setText('Score: ' + score);
         }
     }
 }
 
 function togglePause(scene) {
-    // Only allow toggling if wallet is connected
-    if (!walletConnected) return;
+    // Only allow toggling if wallet is connected and game is not over
+    if (!walletConnected || gameOver) return;
     
     isPaused = !isPaused;
     
@@ -238,6 +270,9 @@ function restartGame(scene) {
     // Show start message
     pauseText.setText('Press SPACE to Start');
     pauseText.setVisible(true);
+
+    // Ensure moyaki resets to normal texture
+    moyaki.setTexture('moyaki');
 }
 
 // Function to be called from blockchain.js when wallet is connected
