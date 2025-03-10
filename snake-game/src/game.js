@@ -26,6 +26,8 @@ let walletConnected = false; // Track wallet connection status
 const GRID_SIZE = 20;
 let moveTime = 0;
 const MOVE_DELAY = 100; // Controls snake speed
+let moveInterpolation = 1; // Tracks interpolation progress (0-1)
+const MOVE_SPEED = 0.15; // Controls how fast the snake moves between grid positions
 
 function preload() {
     this.load.image('molandak', 'snake-game/assets/molandak3.png');
@@ -120,48 +122,86 @@ function update(time) {
         lastDirection = 'down';
     }
 
-    // Move snake on grid
-    if (time >= moveTime) {
+    // Smooth movement between grid positions
+    if (moveInterpolation < 1) {
+        moveInterpolation += MOVE_SPEED;
+        
+        // Apply smooth movement to all segments
+        for (let i = 0; i < snakeSegments.length; i++) {
+            const segment = snakeSegments[i];
+            if (segment.targetX !== undefined && segment.targetY !== undefined) {
+                segment.x = segment.startX + (segment.targetX - segment.startX) * moveInterpolation;
+                segment.y = segment.startY + (segment.targetY - segment.startY) * moveInterpolation;
+            }
+        }
+        
+        // If we've reached the target position, complete the movement
+        if (moveInterpolation >= 1) {
+            moveInterpolation = 1;
+            for (let i = 0; i < snakeSegments.length; i++) {
+                const segment = snakeSegments[i];
+                if (segment.targetX !== undefined) {
+                    segment.x = segment.targetX;
+                    segment.y = segment.targetY;
+                }
+            }
+        }
+    }
+
+    // Move snake on grid when interpolation is complete
+    if (time >= moveTime && moveInterpolation >= 1) {
         moveTime = time + MOVE_DELAY;
+        moveInterpolation = 0; // Reset interpolation for next movement
 
         // Store previous positions
         let prevX = snake.x;
         let prevY = snake.y;
+        
+        // Set start positions for interpolation
+        for (let i = 0; i < snakeSegments.length; i++) {
+            snakeSegments[i].startX = snakeSegments[i].x;
+            snakeSegments[i].startY = snakeSegments[i].y;
+        }
 
-        // Move head
-        snake.x += snake.direction.x * GRID_SIZE;
-        snake.y += snake.direction.y * GRID_SIZE;
+        // Calculate target position for head
+        snake.targetX = prevX + snake.direction.x * GRID_SIZE;
+        snake.targetY = prevY + snake.direction.y * GRID_SIZE;
 
-        // Move body segments
+        // Calculate target positions for body segments
         for (let i = 1; i < snakeSegments.length; i++) {
             const tempX = snakeSegments[i].x;
             const tempY = snakeSegments[i].y;
-            snakeSegments[i].x = prevX;
-            snakeSegments[i].y = prevY;
+            snakeSegments[i].targetX = prevX;
+            snakeSegments[i].targetY = prevY;
             prevX = tempX;
             prevY = tempY;
         }
 
-        // Check wall collision
-        if (snake.x < 0 || snake.x > 800 || snake.y < 0 || snake.y > 600) {
+        // Check wall collision using target position
+        if (snake.targetX < 0 || snake.targetX > 800 || snake.targetY < 0 || snake.targetY > 600) {
             endGame(this);
             return;
         }
 
-        // Check self collision
+        // Check self collision using target position
         for (let i = 1; i < snakeSegments.length; i++) {
-            if (snake.x === snakeSegments[i].x && snake.y === snakeSegments[i].y) {
+            if (snake.targetX === snakeSegments[i].targetX && snake.targetY === snakeSegments[i].targetY) {
                 endGame(this);
                 return;
             }
         }
 
-        // Check food collision
-        if (Math.abs(snake.x - moyaki.x) < GRID_SIZE && Math.abs(snake.y - moyaki.y) < GRID_SIZE) {
+        // Check food collision using target position
+        if (Math.abs(snake.targetX - moyaki.x) < GRID_SIZE && Math.abs(snake.targetY - moyaki.y) < GRID_SIZE) {
             // Add new segment
             const lastSegment = snakeSegments[snakeSegments.length - 1];
             const newSegment = this.add.sprite(lastSegment.x, lastSegment.y, 'molandak');
             newSegment.setScale(0.25);
+            // Set initial properties for the new segment
+            newSegment.startX = lastSegment.x;
+            newSegment.startY = lastSegment.y;
+            newSegment.targetX = lastSegment.x;
+            newSegment.targetY = lastSegment.y;
             snakeSegments.push(newSegment);
 
             // Move food to new grid position
@@ -254,13 +294,18 @@ function restartGame(scene) {
     }
     snakeSegments = [snake];
 
-    // Reset positions
+    // Reset positions and movement variables
     snake.x = 400;
     snake.y = 300;
+    snake.startX = 400;
+    snake.startY = 300;
+    snake.targetX = 400;
+    snake.targetY = 300;
     snake.direction = { x: 1, y: 0 };
     moyaki.x = 200;
     moyaki.y = 200;
     moveTime = 0;
+    moveInterpolation = 1; // Start with completed interpolation
 
     if (gameOverText) {
         gameOverText.destroy();
