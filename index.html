@@ -26,6 +26,7 @@
             width: 800px;
             display: flex;
             justify-content: space-between;
+            align-items: center;
             margin-bottom: 20px;
         }
         #connectButton {
@@ -40,15 +41,103 @@
             margin-top: 20px;
             width: 800px;
         }
+        
+        /* New styles for high score and leaderboard */
+        #highScore {
+            text-align: center;
+            font-size: 24px;
+            margin: 10px 0;
+            color: #800080;
+        }
+        
+        .leaderboard {
+            width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #2a2a2a;
+            border-radius: 10px;
+        }
+        
+        .leaderboard h3 {
+            text-align: center;
+            color: #800080;
+            margin-bottom: 15px;
+        }
+        
+        .leaderboard-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .leaderboard-table th,
+        .leaderboard-table td {
+            padding: 8px;
+            text-align: left;
+            border-bottom: 1px solid #404040;
+        }
+        
+        .leaderboard-table th {
+            color: #800080;
+        }
+        
+        #userRank {
+            text-align: center;
+            margin: 10px 0;
+            font-size: 18px;
+        }
+
+        .wallet-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        #disconnectButton {
+            padding: 10px 20px;
+            background: #ff4444;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        #disconnectButton:hover {
+            background: #cc0000;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="ui-container">
-            <button id="connectButton">Connect Wallet</button>
+            <div class="wallet-buttons">
+                <button id="connectButton">Connect Wallet</button>
+                <button id="disconnectButton" style="display: none;">Disconnect Wallet</button>
+            </div>
             <div id="walletInfo">Not Connected</div>
         </div>
+        
+        <!-- Add high score display -->
+        <div id="highScore">High Score: 0</div>
+        
         <div id="game"></div>
+        
+        <!-- Add leaderboard section -->
+        <div class="leaderboard">
+            <h3>Global Leaderboard</h3>
+            <table class="leaderboard-table">
+                <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th>Address</th>
+                        <th>Score</th>
+                    </tr>
+                </thead>
+                <tbody id="leaderboardBody">
+                    <!-- Leaderboard entries will be populated here -->
+                </tbody>
+            </table>
+            <div id="userRank"></div>
+        </div>
+
         <div id="scoreHistory">
             <center>
             <h3>Your Past Scores</h3>
@@ -72,8 +161,12 @@
         </center>
         
     </div>
+
+    <!-- Load libraries first -->
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+    
+    <!-- Then load your game files -->
     <script src="snake-game/src/blockchain.js"></script>
     <script src="snake-game/src/game.js"></script>
 </body>

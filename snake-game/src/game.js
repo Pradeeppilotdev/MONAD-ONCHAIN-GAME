@@ -1,45 +1,39 @@
-﻿const config = {
-    type: Phaser.AUTO,
-    width: 800,
-    height: 600,
-    backgroundColor: '#2d2d2d',
-    parent: 'game',
-    scene: {
-        preload: preload,
-        create: create,
-        update: update
-    }
-};
-
-const game = new Phaser.Game(config);
-
+﻿// Global variables
 let snake, moyaki, cursors, score = 0, scoreText;
 let snakeSegments = [];
 let lastDirection = 'right';
 let gameOver = false;
 let gameOverText;
-let isPaused = true; // Game starts paused
-let pauseText;
-let walletConnected = false; // Track wallet connection status
+let isPaused = true;
+let walletConnected = false;
 
 // Grid settings
 const GRID_SIZE = 20;
 let moveTime = 0;
-const MOVE_DELAY = 100; // Controls snake speed
-let moveInterpolation = 1; // Tracks interpolation progress (0-1)
-const MOVE_SPEED = 0.15; // Controls how fast the snake moves between grid positions
+const MOVE_DELAY = 100;
+let moveInterpolation = 1;
+const MOVE_SPEED = 0.15;
+
+// Add audio variables at the top
+let backgroundMusic;
+let eatSound;
+let chogSound;
 
 function preload() {
     this.load.image('molandak', 'snake-game/assets/molandak3.png');
     this.load.image('moyaki', 'snake-game/assets/moyaki3.png');
-    this.load.image('chog', 'snake-game/assets/chog.png');  // Add new image
-    this.load.image('gridbg', 'snake-game/assets/gridbg.png');
+    this.load.image('chog', 'snake-game/assets/chog.png');
+
+    // Load audio files
+    this.load.audio('bgMusic', 'snake-game/assets/background-music.mp3');
+    this.load.audio('eat', 'snake-game/assets/eat.mp3');
+    this.load.audio('chog-eat', 'snake-game/assets/chog-eat.mp3');
 }
 
 function create() {
     // Create a custom grey grid background
     const graphics = this.add.graphics();
-    graphics.lineStyle(1, 0x666666, 0.3); // Line width, grey color (0x666666), alpha 0.3
+    graphics.lineStyle(1, 0x666666, 0.3);
     
     // Draw vertical grid lines
     for (let x = 0; x <= config.width; x += GRID_SIZE) {
@@ -55,9 +49,10 @@ function create() {
     
     graphics.strokePath();
     
-    // Initialize snake head
+    // Initialize snake head with direction
     snake = this.add.sprite(400, 300, 'molandak');
     snake.setScale(0.25);
+    snake.direction = { x: 1, y: 0 }; // Set initial direction
     snakeSegments = [snake];
 
     // Initialize food
@@ -73,9 +68,6 @@ function create() {
     // Setup keyboard controls
     cursors = this.input.keyboard.createCursorKeys();
 
-    // Initialize direction
-    snake.direction = { x: 1, y: 0 };
-
     // Add pause/start text
     pauseText = this.add.text(400, 300, 'Connect Wallet to Play', {
         fontSize: '48px',
@@ -83,11 +75,29 @@ function create() {
         align: 'center'
     }).setOrigin(0.5);
 
-    // Add space key for pause/resume
+    // Initialize audio with rate modification
+    backgroundMusic = this.sound.add('bgMusic', {
+        volume: 0.45,
+        loop: true
+    });
+
+    eatSound = this.sound.add('eat', {
+        volume: 1.5,
+        rate: 1.95  // 2x speed
+    });
+
+    chogSound = this.sound.add('chog-eat', {
+        volume: 3.5,
+        rate: 1.25 // 2x speed
+    });
+
+    // Start background music when game starts
     this.input.keyboard.on('keydown-SPACE', function() {
-        // Only allow toggling pause if wallet is connected
         if (walletConnected) {
-            togglePause(this);
+            togglePause(this.scene);
+            if (!isPaused && !backgroundMusic.isPlaying) {
+                backgroundMusic.play();
+            }
         } else {
             pauseText.setText('Connect Wallet to Play');
         }
@@ -100,7 +110,34 @@ function create() {
     });
 }
 
+function togglePause(scene) {
+    // Only allow toggling if wallet is connected and game is not over
+    if (!walletConnected || gameOver) return;
+    
+    isPaused = !isPaused;
+    
+    if (isPaused) {
+        // Show pause text
+        pauseText.setText('PAUSED\nPress SPACE to Resume');
+        pauseText.setVisible(true);
+        // Pause the music
+        if (backgroundMusic.isPlaying) {
+            backgroundMusic.pause();
+        }
+    } else {
+        // Hide pause text when game is running
+        pauseText.setVisible(false);
+        // Resume the music
+        if (!backgroundMusic.isPlaying) {
+            backgroundMusic.resume();
+        }
+    }
+}
+
 function update(time) {
+    // Store scene context
+    const scene = this;
+
     // Don't update if game is over, paused, or wallet not connected
     if (gameOver || isPaused || !walletConnected) return;
 
@@ -179,14 +216,14 @@ function update(time) {
 
         // Check wall collision using target position
         if (snake.targetX < 0 || snake.targetX > 800 || snake.targetY < 0 || snake.targetY > 600) {
-            endGame(this);
+            endGame(scene);
             return;
         }
 
         // Check self collision using target position
         for (let i = 1; i < snakeSegments.length; i++) {
             if (snake.targetX === snakeSegments[i].targetX && snake.targetY === snakeSegments[i].targetY) {
-                endGame(this);
+                endGame(scene);
                 return;
             }
         }
@@ -195,9 +232,8 @@ function update(time) {
         if (Math.abs(snake.targetX - moyaki.x) < GRID_SIZE && Math.abs(snake.targetY - moyaki.y) < GRID_SIZE) {
             // Add new segment
             const lastSegment = snakeSegments[snakeSegments.length - 1];
-            const newSegment = this.add.sprite(lastSegment.x, lastSegment.y, 'molandak');
+            const newSegment = scene.add.sprite(lastSegment.x, lastSegment.y, 'molandak');
             newSegment.setScale(0.25);
-            // Set initial properties for the new segment
             newSegment.startX = lastSegment.x;
             newSegment.startY = lastSegment.y;
             newSegment.targetX = lastSegment.x;
@@ -209,17 +245,17 @@ function update(time) {
             moyaki.y = Phaser.Math.Between(2, 28) * GRID_SIZE;
 
             // Update score and handle special food
-            if (score % 100 === 90 && moyaki.texture.key !== 'chog') {
-                // Change to chog at next multiple of 100 (current + 10)
-                moyaki.setTexture('chog');
-                score += 10;
-            } else if (moyaki.texture.key === 'chog') {
-                // Special reward for catching chog
+            if (moyaki.texture.key === 'chog') {
+                chogSound.play();
                 score += 20;
                 moyaki.setTexture('moyaki');
             } else {
-                // Normal score increase
+                eatSound.play();
                 score += 10;
+                // Check if next food should be chog (at score multiples of 50)
+                if (score % 100 === 0) {
+                    moyaki.setTexture('chog');
+                }
             }
             
             scoreText.setText('Score: ' + score);
@@ -227,63 +263,110 @@ function update(time) {
     }
 }
 
-function togglePause(scene) {
-    // Only allow toggling if wallet is connected and game is not over
-    if (!walletConnected || gameOver) return;
-    
-    isPaused = !isPaused;
-    
-    if (isPaused) {
-        // Show pause text
-        pauseText.setText('PAUSED\nPress SPACE to Resume');
-        pauseText.setVisible(true);
-    } else {
-        // Hide pause text
-        pauseText.setVisible(false);
-    }
-}
+// All your other functions (togglePause, endGame, restartGame, etc.)...
 
+// AFTER all functions are defined, then create the config and initialize the game
+const config = {
+    type: Phaser.AUTO,
+    width: 800,
+    height: 600,
+    backgroundColor: '#2d2d2d',
+    parent: 'game',
+    scene: {
+        preload: preload,
+        create: create,
+        update: update
+    }
+};
+
+// Instead, initialize after DOM loads
+document.addEventListener('DOMContentLoaded', function() {
+    window.game = new Phaser.Game(config);
+});
+
+// Update the endGame function
 function endGame(scene) {
     gameOver = true;
     isPaused = true;
 
-    // Show game over message
+    // Stop the background music
+    if (backgroundMusic.isPlaying) {
+        backgroundMusic.stop();
+    }
+
     if (gameOverText) {
         gameOverText.destroy();
     }
     gameOverText = scene.add.text(400, 300, 'Game Over!\nClick to submit score', {
-        fontSize: '64px',
+        fontSize: '48px', // Reduced from 64px
         fill: '#fff',
         align: 'center'
     }).setOrigin(0.5);
 
-    // Hide pause text if visible
     if (pauseText) {
         pauseText.setVisible(false);
     }
 
-    // Add click handler to submit score and restart
-    scene.input.once('pointerdown', () => {
-        // Update blockchain score if available
-        if (typeof updateHighScore === 'function') {
-            updateHighScore(score).then(() => {
-                if (typeof displayScoreHistory === 'function') {
-                    displayScoreHistory();
+    // Update click handler with better debugging
+    scene.input.once('pointerdown', async () => {
+        console.log('Click detected, score:', score);
+        console.log('Contract status:', window.contract ? 'exists' : 'not found');
+        
+        // Check if we have access to the contract and ethereum
+        if (!window.ethereum || !window.ethereum.selectedAddress) {
+            console.log('Wallet not connected');
+            gameOverText.setText('Wallet not connected!\nPlease connect wallet');
+            return;
+        }
+
+        if (!window.contract) {
+            console.log('Contract not initialized');
+            gameOverText.setText('Contract not initialized!\nPlease refresh page');
+            return;
+        }
+
+        if (score > 0) {
+            try {
+                gameOverText.setText('Submitting score...').setFontSize(32); // Smaller font
+                console.log('Attempting to submit score:', score);
+                
+                const tx = await window.contract.submitScore(score);
+                console.log('Transaction sent:', tx);
+                
+                gameOverText.setText('Waiting for confirmation...').setFontSize(32);
+                await tx.wait();
+                console.log('Transaction confirmed');
+                
+                gameOverText.setText('Score submitted!\nRestarting...').setFontSize(32);
+                
+                if (typeof updateLeaderboard === 'function') {
+                    await updateLeaderboard();
                 }
-                restartGame(scene);
-            }).catch(error => {
-                console.error("Error updating score:", error);
-                restartGame(scene);
-            });
+                
+                // Wait before restarting
+                setTimeout(() => {
+                    restartGame.call(scene, scene);
+                }, 2000);
+                
+            } catch (error) {
+                console.error('Error submitting score:', error);
+                gameOverText.setText('Error submitting score!\nClick to try again').setFontSize(32);
+                // Re-enable click handler
+                setTimeout(() => {
+                    endGame(scene);
+                }, 1000);
+            }
         } else {
-            restartGame(scene);
+            console.log('Score is 0, restarting without submission');
+            restartGame.call(scene, scene);
         }
     });
 }
 
+// Update the restartGame function to handle the scene context properly
 function restartGame(scene) {
     gameOver = false;
-    isPaused = true; // Start paused
+    isPaused = true;
     score = 0;
     lastDirection = 'right';
     scoreText.setText('Score: 0');
@@ -318,13 +401,75 @@ function restartGame(scene) {
 
     // Ensure moyaki resets to normal texture
     moyaki.setTexture('moyaki');
+
+    // Stop any playing music
+    if (backgroundMusic.isPlaying) {
+        backgroundMusic.stop();
+    }
 }
 
-// Function to be called from blockchain.js when wallet is connected
-function setWalletConnected() {
+// Make sure restartGame is available globally
+window.restartGame = restartGame;
+
+// Update the setWalletConnected function
+async function setWalletConnected() {
     walletConnected = true;
-    pauseText.setText('Press SPACE to Start');
+    if (pauseText) {
+        pauseText.setText('Press SPACE to Start');
+    }
+    
+    console.log('Wallet connected, checking contract setup...');
+    console.log('CONTRACT_ADDRESS:', window.CONTRACT_ADDRESS);
+    console.log('CONTRACT_ABI:', window.CONTRACT_ABI);
+    
+    try {
+        if (!window.ethereum) {
+            throw new Error('Ethereum object not found');
+        }
+        if (!window.CONTRACT_ADDRESS) {
+            throw new Error('Contract address not defined');
+        }
+        if (!window.CONTRACT_ABI) {
+            throw new Error('Contract ABI not defined');
+        }
+        
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
+        const signer = provider.getSigner();
+        window.contract = new ethers.Contract(
+            window.CONTRACT_ADDRESS,
+            window.CONTRACT_ABI,
+            signer
+        );
+        console.log('Contract initialized successfully:', window.contract);
+    } catch (error) {
+        console.error('Error initializing contract:', error);
+    }
 }
 
-// Expose the function globally
-window.setWalletConnected = setWalletConnected;
+// Add this function to check wallet connection status
+function checkWalletConnection() {
+    if (window.ethereum && window.ethereum.selectedAddress) {
+        setWalletConnected();
+    }
+}
+
+// Add this somewhere in your main JavaScript file
+window.CONTRACT_ADDRESS = '0x1489C0807144E10cE4cD3BEafA8Bed0077292A5E';
+window.CONTRACT_ABI = [
+    // Your contract ABI array here
+    {
+        "inputs": [
+            {
+                "internalType": "uint256",
+                "name": "score",
+                "type": "uint256"
+            }
+        ],
+        "name": "submitScore",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    // ... other contract functions
+];
+
