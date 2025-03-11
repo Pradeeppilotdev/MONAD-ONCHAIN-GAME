@@ -32,10 +32,14 @@
         #connectButton {
             padding: 10px 20px;
             background: #800080;
+            box-shadow: 0 0 10px 0 rgba(244, 2, 244, 0.5);
             color: white;
             border: none;
             border-radius: 5px;
             cursor: pointer;
+        }
+        #connectButton:hover {
+            background: #d004d0;
         }
         #scoreHistory {
             margin-top: 20px;
@@ -93,7 +97,8 @@
 
         #disconnectButton {
             padding: 10px 20px;
-            background: #ff4444;
+            background: #770177;
+            box-shadow: 0 0 10px 0 rgba(244, 2, 244, 0.5);
             color: white;
             border: none;
             border-radius: 5px;
@@ -101,7 +106,7 @@
         }
 
         #disconnectButton:hover {
-            background: #cc0000;
+            background: #d004d0;;
         }
     </style>
 </head>
@@ -136,13 +141,6 @@
                 </tbody>
             </table>
             <div id="userRank"></div>
-        </div>
-
-        <div id="scoreHistory">
-            <center>
-            <h3>Your Past Scores</h3>
-            <div id="scores"></div>
-            </center>
         </div>
     </div>
     <br>
