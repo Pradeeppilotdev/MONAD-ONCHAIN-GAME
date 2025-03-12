@@ -289,7 +289,6 @@ function endGame(scene) {
     gameOver = true;
     isPaused = true;
 
-    // Stop the background music
     if (backgroundMusic.isPlaying) {
         backgroundMusic.stop();
     }
@@ -298,7 +297,7 @@ function endGame(scene) {
         gameOverText.destroy();
     }
     gameOverText = scene.add.text(400, 300, 'Game Over!\nClick to submit score', {
-        fontSize: '48px', // Reduced from 64px
+        fontSize: '48px',
         fill: '#fff',
         align: 'center'
     }).setOrigin(0.5);
@@ -307,68 +306,62 @@ function endGame(scene) {
         pauseText.setVisible(false);
     }
 
-    // Update click handler with better debugging
     scene.input.once('pointerdown', async () => {
-        console.log('Click detected, score:', score);
-        console.log('Contract status:', window.contract ? 'exists' : 'not found');
-        
-        // Check if we have access to the contract and ethereum
         if (!window.ethereum || !window.ethereum.selectedAddress) {
-            console.log('Wallet not connected');
             gameOverText.setText('Wallet not connected!\nPlease connect wallet');
             return;
         }
 
         if (!window.contract) {
-            console.log('Contract not initialized');
             gameOverText.setText('Contract not initialized!\nPlease refresh page');
             return;
         }
 
         if (score > 0) {
             try {
-                gameOverText.setText('Submitting score...').setFontSize(32); // Smaller font
-                console.log('Attempting to submit score:', score);
+                gameOverText.setText('Submitting score...').setFontSize(32);
                 
                 const tx = await window.contract.submitScore(score);
-                console.log('Transaction sent:', tx);
+                gameOverText.setText('Waiting confirmation...').setFontSize(32);
                 
-                gameOverText.setText('Waiting for confirmation...').setFontSize(32);
+                // Wait for transaction confirmation
                 await tx.wait();
-                console.log('Transaction confirmed');
                 
+                // Show success message briefly before restart
                 gameOverText.setText('Score submitted!\nRestarting...').setFontSize(32);
                 
+                // Update leaderboard and restart after a short delay
                 if (typeof updateLeaderboard === 'function') {
-                    await updateLeaderboard();
+                    updateLeaderboard();
                 }
                 
-                // Wait before restarting
+                // Short delay to show the success message
                 setTimeout(() => {
-                    restartGame.call(scene, scene);
-                }, 2000);
+                    restartGame(scene);
+                }, 800);
                 
             } catch (error) {
                 console.error('Error submitting score:', error);
                 gameOverText.setText('Error submitting score!\nClick to try again').setFontSize(32);
-                // Re-enable click handler
-                setTimeout(() => {
-                    endGame(scene);
-                }, 1000);
+                scene.input.once('pointerdown', () => endGame(scene));
             }
         } else {
-            console.log('Score is 0, restarting without submission');
-            restartGame.call(scene, scene);
+            restartGame(scene);
         }
     });
 }
 
-// Update the restartGame function to handle the scene context properly
+// Update the restartGame function
 function restartGame(scene) {
+    // Reset game state
     gameOver = false;
     isPaused = true;
     score = 0;
     lastDirection = 'right';
+    moveTime = 0;
+    moveInterpolation = 1;
+
+    // Update score display
     scoreText.setText('Score: 0');
 
     // Clear snake segments
@@ -377,7 +370,7 @@ function restartGame(scene) {
     }
     snakeSegments = [snake];
 
-    // Reset positions and movement variables
+    // Reset snake position
     snake.x = 400;
     snake.y = 300;
     snake.startX = 400;
@@ -385,11 +378,13 @@ function restartGame(scene) {
     snake.targetX = 400;
     snake.targetY = 300;
     snake.direction = { x: 1, y: 0 };
+
+    // Reset food position
     moyaki.x = 200;
     moyaki.y = 200;
-    moveTime = 0;
-    moveInterpolation = 1; // Start with completed interpolation
+    moyaki.setTexture('moyaki');
 
+    // Clear game over text
     if (gameOverText) {
         gameOverText.destroy();
         gameOverText = null;
@@ -399,13 +394,13 @@ function restartGame(scene) {
     pauseText.setText('Press SPACE to Start');
     pauseText.setVisible(true);
 
-    // Ensure moyaki resets to normal texture
-    moyaki.setTexture('moyaki');
-
     // Stop any playing music
     if (backgroundMusic.isPlaying) {
         backgroundMusic.stop();
     }
+
+    // Make sure the game is ready for new input
+    scene.input.keyboard.enabled = true;
 }
 
 // Make sure restartGame is available globally

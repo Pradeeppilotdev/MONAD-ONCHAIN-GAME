@@ -36,8 +36,20 @@ let isConnected = false;
 async function connectWallet() {
     try {
         if (typeof window.ethereum !== 'undefined') {
-            // Connect to MetaMask
-            provider = new ethers.providers.Web3Provider(window.ethereum);
+            // Check if we're on the correct network first
+            const provider = new ethers.providers.Web3Provider(window.ethereum);
+            const network = await provider.getNetwork();
+            
+            // Check if we're on Monad Testnet (chainId: 10143)
+            if (network.chainId !== 10143) {
+                console.log('Wrong network, attempting to switch to Monad Testnet...');
+                const switched = await switchToMonadTestnet();
+                if (!switched) {
+                    return false;
+                }
+            }
+
+            // Now proceed with connection
             await provider.send("eth_requestAccounts", []);
             signer = provider.getSigner();
             account = await signer.getAddress();
@@ -288,9 +300,17 @@ document.getElementById('game').style.opacity = '0.5';
 
 // Listen for network changes
 if (window.ethereum) {
-    window.ethereum.on('chainChanged', (chainId) => {
-        // Reload the page when the network changes
-        window.location.reload();
+    window.ethereum.on('chainChanged', async (chainId) => {
+        // Convert chainId to decimal for comparison
+        const decimal = parseInt(chainId, 16);
+        if (decimal !== 10143) {
+            // If not on Monad Testnet, disconnect
+            await disconnectWallet();
+            alert('Please connect to Monad Testnet to play the game.');
+        } else {
+            // If switched to Monad Testnet, try to reconnect
+            connectWallet();
+        }
     });
 }
 
