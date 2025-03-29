@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" id="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>MONAD XENZIA</title>
     <link rel="icon"  href="snake-game\assets\molandak.png" type="image/x-icon">
     <style>
@@ -14,6 +14,7 @@
             min-height: 100vh;
             display: flex;
             flex-direction: column;
+            overflow: auto;
         }
         .container {
             display: flex;
@@ -24,6 +25,8 @@
         #game { 
             border: 1px solid #fff;
             margin: 20px 0;
+            touch-action: none;
+            -webkit-touch-callout: none;
         }
         .ui-container {
             width: 800px;
@@ -246,6 +249,125 @@
             padding: 0 20px;
             text-align: center;
         }
+
+        .game-controls {
+            margin: 20px 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            touch-action: none;
+        }
+
+        .control-row {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .control-btn {
+            width: 60px;
+            height: 60px;
+            background: #800080;
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: 0 0 10px 0 rgba(244, 2, 244, 0.5);
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        .control-btn:hover {
+            background: #d004d0;
+        }
+
+        #spaceBtn {
+            width: 120px;
+            font-size: 18px;
+        }
+
+        /* Mobile warning modal */
+        .mobile-warning {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 1000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .mobile-warning-content {
+            background: #2a2a2a;
+            padding: 20px;
+            border-radius: 10px;
+            max-width: 90%;
+            text-align: center;
+            border: 2px solid #800080;
+        }
+
+        .mobile-warning-content h3 {
+            color: #800080;
+            margin-bottom: 15px;
+        }
+
+        .mobile-warning-content ol {
+            text-align: left;
+            margin: 20px 0;
+            padding-left: 20px;
+        }
+
+        .mobile-warning-content button {
+            background: #800080;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        .mobile-warning-content button:hover {
+            background: #d004d0;
+        }
+
+        /* Game state dependent styles */
+        body.game-active {
+            touch-action: none;
+            overflow: hidden;
+            position: fixed; /* This prevents any bouncing/scrolling */
+            width: 100%;
+            height: 100%;
+        }
+
+        body:not(.game-active) {
+            touch-action: auto;
+            overflow: auto;
+            position: static;
+        }
+
+        html, body {
+            touch-action: manipulation;
+            -ms-touch-action: manipulation;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+
+        #game {
+            touch-action: none !important;
+            -ms-touch-action: none !important;
+        }
     </style>
 </head>
 <body>
@@ -263,6 +385,21 @@
         
         <div id="game"></div>
         
+        <!-- Add on-screen controls -->
+        <div class="game-controls">
+            <div class="control-row">
+                <button class="control-btn" id="upBtn">↑</button>
+            </div>
+            <div class="control-row">
+                <button class="control-btn" id="leftBtn">←</button>
+                <button class="control-btn" id="spaceBtn">Space</button>
+                <button class="control-btn" id="rightBtn">→</button>
+            </div>
+            <div class="control-row">
+                <button class="control-btn" id="downBtn">↓</button>
+            </div>
+        </div>
+
         <!-- Add leaderboard section -->
         <div class="leaderboard">
             <h3>Global Leaderboard</h3>
@@ -331,5 +468,244 @@
             </div>
         </div>
     </footer>
+
+    <!-- Add this modal for mobile users right after the container div -->
+    <div id="mobileWarning" class="mobile-warning" style="display: none;">
+        <div class="mobile-warning-content">
+            <h3>⚠️ Mobile Device Detected</h3>
+            <p>For the best gaming experience:</p>
+            <ol>
+                <li>Open your browser settings (usually three dots ⋮)</li>
+                <li>Check "Desktop site" or "Request desktop site"</li>
+                <li>Refresh the page</li>
+            </ol>
+            <button onclick="this.parentElement.parentElement.style.display='none'">Got it!</button>
+        </div>
+    </div>
+
+    <script>
+        // Create a mapping of button IDs to their corresponding key codes and keys
+        const controlMap = {
+            'upBtn': { keyCode: 38, key: 'ArrowUp' },
+            'downBtn': { keyCode: 40, key: 'ArrowDown' },
+            'leftBtn': { keyCode: 37, key: 'ArrowLeft' },
+            'rightBtn': { keyCode: 39, key: 'ArrowRight' },
+            'spaceBtn': { keyCode: 32, key: ' ' }
+        };
+
+        // Function to create and dispatch key events
+        function emulateKey(keyInfo, type = 'keydown') {
+            const event = new KeyboardEvent(type, {
+                bubbles: true,
+                cancelable: true,
+                keyCode: keyInfo.keyCode,
+                key: keyInfo.key,
+                code: keyInfo.key
+            });
+            window.dispatchEvent(event);
+        }
+
+        // Add event listeners to all control buttons
+        Object.entries(controlMap).forEach(([btnId, keyInfo]) => {
+            const button = document.getElementById(btnId);
+            let isPressed = false;
+            let pressInterval;
+
+            // Handle both mouse and touch events
+            const startPress = () => {
+                if (isPressed) return;
+                isPressed = true;
+                emulateKey(keyInfo, 'keydown');
+                
+                // For continuous movement while holding
+                pressInterval = setInterval(() => {
+                    emulateKey(keyInfo, 'keydown');
+                }, 100); // Adjust this value to control repeat rate
+            };
+
+            const endPress = () => {
+                if (!isPressed) return;
+                isPressed = false;
+                clearInterval(pressInterval);
+                emulateKey(keyInfo, 'keyup');
+            };
+
+            // Mouse events
+            button.addEventListener('mousedown', startPress);
+            button.addEventListener('mouseup', endPress);
+            button.addEventListener('mouseleave', endPress);
+
+            // Touch events
+            button.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                startPress();
+            });
+            button.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                endPress();
+            });
+            button.addEventListener('touchcancel', (e) => {
+                e.preventDefault();
+                endPress();
+            });
+        });
+
+        // Prevent default behavior for all control buttons
+        document.querySelectorAll('.control-btn').forEach(button => {
+            button.addEventListener('contextmenu', (e) => e.preventDefault());
+        });
+
+        // Mobile detection function
+        function isMobileDevice() {
+            return (
+                (navigator.userAgent.match(/Android/i)) ||
+                (navigator.userAgent.match(/webOS/i)) ||
+                (navigator.userAgent.match(/iPhone/i)) ||
+                (navigator.userAgent.match(/iPad/i)) ||
+                (navigator.userAgent.match(/iPod/i)) ||
+                (navigator.userAgent.match(/BlackBerry/i)) ||
+                (navigator.userAgent.match(/Windows Phone/i))
+            );
+        }
+
+        // Check if the site is in desktop mode
+        function isDesktopMode() {
+            return window.innerWidth >= 1024; // Typical desktop breakpoint
+        }
+
+        // Show warning for mobile users not in desktop mode
+        function checkMobileAndMode() {
+            if (isMobileDevice() && !isDesktopMode()) {
+                document.getElementById('mobileWarning').style.display = 'flex';
+            }
+        }
+
+        // Check on page load
+        window.addEventListener('load', checkMobileAndMode);
+
+        // Check on resize (in case user rotates device)
+        window.addEventListener('resize', checkMobileAndMode);
+
+        // Update the touch event handling
+        document.querySelectorAll('.control-btn').forEach(button => {
+            button.addEventListener('touchstart', (e) => {
+                e.preventDefault(); // Only prevent default on control buttons
+                e.stopPropagation(); // Stop event from bubbling up
+            });
+            
+            button.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+            });
+            
+            button.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+            });
+        });
+
+        // Remove any touch restrictions on the body
+        document.body.style.touchAction = 'auto';
+        document.body.style.overflow = 'auto';
+
+        // Only prevent zoom/scroll in the game area
+        document.getElementById('game').addEventListener('touchmove', (e) => {
+            e.preventDefault();
+        }, { passive: false });
+
+        // Update mobile warning to be scrollable
+        document.querySelector('.mobile-warning-content').style.maxHeight = '80vh';
+        document.querySelector('.mobile-warning-content').style.overflow = 'auto';
+
+        // Add game state management
+        let isGameActive = false;
+
+        // Function to update viewport meta tag
+        function updateViewport(isGameActive) {
+            const viewport = document.getElementById('viewport');
+            if (isGameActive) {
+                viewport.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no';
+                document.documentElement.style.touchAction = 'none';
+            } else {
+                viewport.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no';
+                document.documentElement.style.touchAction = 'pan-y';
+            }
+        }
+
+        // Update the setGameState function
+        function setGameState(active) {
+            isGameActive = active;
+            document.body.classList.toggle('game-active', active);
+            updateViewport(active); // Add this line to update viewport
+        }
+
+        // Initialize viewport in scrollable state
+        updateViewport(false);
+
+        // Update the space button handler
+        document.getElementById('spaceBtn').addEventListener('click', (e) => {
+            e.preventDefault();
+            setGameState(!isGameActive);
+            emulateKey(controlMap['spaceBtn'], 'keydown');
+        });
+
+        // Update keyboard space press handler
+        window.addEventListener('keydown', (e) => {
+            if (e.key === ' ' || e.code === 'Space') {
+                setGameState(!isGameActive);
+            }
+        });
+
+        // Handle game over
+        function handleGameOver() {
+            setGameState(false);
+        }
+
+        // Handle visibility change
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden && isGameActive) {
+                setGameState(false);
+            }
+        });
+
+        // Update the mobile warning to respect game state
+        const mobileWarning = document.getElementById('mobileWarning');
+        const warningButton = mobileWarning.querySelector('button');
+        
+        warningButton.addEventListener('click', () => {
+            mobileWarning.style.display = 'none';
+            if (isGameActive) {
+                setGameState(true); // Ensure scroll lock if game is active
+            }
+        });
+
+        // Prevent zoom on double tap
+        let lastTouchEnd = 0;
+        document.addEventListener('touchend', (e) => {
+            const now = Date.now();
+            if (now - lastTouchEnd <= 300) {
+                e.preventDefault();
+            }
+            lastTouchEnd = now;
+        }, false);
+
+        // Prevent zoom on pinch
+        document.addEventListener('touchmove', (e) => {
+            if (e.touches.length > 1) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+
+        // Prevent all touch zoom gestures
+        document.addEventListener('gesturestart', (e) => {
+            e.preventDefault();
+        });
+        document.addEventListener('gesturechange', (e) => {
+            e.preventDefault();
+        });
+        document.addEventListener('gestureend', (e) => {
+            e.preventDefault();
+        });
+    </script>
 </body>
 </html>
