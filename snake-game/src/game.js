@@ -19,6 +19,16 @@ let backgroundMusic;
 let eatSound;
 let chogSound;
 
+// Add these constants at the top with other global variables
+const BASE_SCALE = 0.25;
+const MIN_SCALE = 0.08;
+const SCALE_THRESHOLD = 500; // Points at which scaling starts
+const SCALE_FACTOR = 0.03; // How much to reduce scale per threshold
+const BASE_MOVE_DELAY = 100;    // Starting speed (higher = slower)
+const MIN_MOVE_DELAY = 40;      // Maximum speed (lower = faster)
+const SPEED_THRESHOLD = 200;    // Points at which speed increases
+const SPEED_INCREASE = 5;       // How many milliseconds faster per threshold
+
 function preload() {
     this.load.image('molandak', 'snake-game/assets/molandak3.png');
     this.load.image('moyaki', 'snake-game/assets/moyaki3.png');
@@ -185,10 +195,13 @@ function update(time) {
         }
     }
 
+    // Calculate current move delay based on score
+    const currentMoveDelay = calculateMoveDelay(score);
+
     // Move snake on grid when interpolation is complete
     if (time >= moveTime && moveInterpolation >= 1) {
-        moveTime = time + MOVE_DELAY;
-        moveInterpolation = 0; // Reset interpolation for next movement
+        moveTime = time + currentMoveDelay;  // Use the calculated delay
+        moveInterpolation = 0;
 
         // Store previous positions
         let prevX = snake.x;
@@ -233,7 +246,15 @@ function update(time) {
             // Add new segment
             const lastSegment = snakeSegments[snakeSegments.length - 1];
             const newSegment = scene.add.sprite(lastSegment.x, lastSegment.y, 'molandak');
-            newSegment.setScale(0.25);
+            
+            // Calculate new scale based on current score
+            const currentScale = calculateScale(score);
+            newSegment.setScale(currentScale);
+            
+            // Update scale of all existing segments and food
+            snakeSegments.forEach(segment => segment.setScale(currentScale));
+            moyaki.setScale(currentScale);
+            
             newSegment.startX = lastSegment.x;
             newSegment.startY = lastSegment.y;
             newSegment.targetX = lastSegment.x;
@@ -401,6 +422,10 @@ function restartGame(scene) {
 
     // Make sure the game is ready for new input
     scene.input.keyboard.enabled = true;
+
+    // Reset all scales to base scale
+    snakeSegments.forEach(segment => segment.setScale(BASE_SCALE));
+    moyaki.setScale(BASE_SCALE);
 }
 
 // Make sure restartGame is available globally
@@ -467,4 +492,21 @@ window.CONTRACT_ABI = [
     },
     // ... other contract functions
 ];
+
+// Add this function to calculate current scale based on score
+function calculateScale(currentScore) {
+    if (currentScore < SCALE_THRESHOLD) return BASE_SCALE;
+    
+    const reduction = Math.floor(currentScore / SCALE_THRESHOLD) * SCALE_FACTOR;
+    const newScale = BASE_SCALE - reduction;
+    return Math.max(newScale, MIN_SCALE); // Don't go smaller than MIN_SCALE
+}
+
+// Add this function to calculate move delay based on score
+function calculateMoveDelay(currentScore) {
+    if (currentScore < SPEED_THRESHOLD) return BASE_MOVE_DELAY;
+    
+    const reduction = Math.floor(currentScore / SPEED_THRESHOLD) * SPEED_INCREASE;
+    return Math.max(BASE_MOVE_DELAY - reduction, MIN_MOVE_DELAY);
+}
 
