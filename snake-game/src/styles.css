@@ -1,0 +1,80 @@
+body { 
+    margin: 0;
+    background: #1a1a1a;
+    color: white;
+    font-family: Arial, sans-serif;
+}
+
+#root {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+}
+
+#game { 
+    border: 1px solid #fff;
+    margin: 20px 0;
+}
+
+#wallet-section {
+    width: 800px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+#connectButton, #disconnectButton {
+    padding: 10px 20px;
+    background: #800080;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+#connectButton:hover, #disconnectButton:hover {
+    background: #993399;
+}
+
+#leaderboard {
+    width: 800px;
+    margin-top: 20px;
+}
+
+#leaderboard table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+}
+
+#leaderboard th, #leaderboard td {
+    padding: 10px;
+    text-align: left;
+    border-bottom: 1px solid #333;
+}
+
+#leaderboard th {
+    background: #333;
+}
+
+#userRank {
+    margin-top: 10px;
+    color: #e241e2;
+    font-weight: bold;
+}
+
+#highScore {
+    font-size: 1.2em;
+    color: #f038f0;
+}
+
+/* Rainbow Wallet specific styles */
+[data-rk] {
+    --rk-background-color: #1a1a1a;
+    --rk-accent-color: #800080;
+    --rk-border-radius: 5px;
+    --rk-font-family: Arial, sans-serif;
+} 

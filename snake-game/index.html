@@ -3,59 +3,240 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Monad Snake Game</title>
+    <title>Celestial Snake Game</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        body { 
+        :root {
+            --primary-color: #6c63ff;
+            --secondary-color: #4a90e2;
+            --accent-color: #ff6b6b;
+            --background-color: #0a0a2a;
+            --text-color: #ffffff;
+            --panel-bg: rgba(16, 16, 42, 0.8);
+        }
+        
+        * {
             margin: 0;
-            background: #1a1a1a;
-            color: white;
-            font-family: Arial, sans-serif;
+            padding: 0;
+            box-sizing: border-box;
         }
-        .container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 20px;
+        
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Arial', sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            overflow: hidden;
+            min-height: 100vh;
         }
-        #game { 
-            border: 1px solid #fff;
-            margin: 20px 0;
+        
+        #celestial-background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
         }
-        .ui-container {
-            width: 800px;
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 20px;
+        
+        #stars {
+            position: absolute;
+            width: 100%;
+            height: 100%;
         }
-        #connectButton {
-            padding: 10px 20px;
-            background: #800080;
+        
+        #nebula {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at center, 
+                rgba(108, 99, 255, 0.2) 0%,
+                rgba(74, 144, 226, 0.1) 50%,
+                transparent 100%);
+            filter: blur(60px);
+            transition: transform 0.3s ease-out;
+        }
+        
+        .game-container {
+            position: relative;
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 2rem;
+            background: var(--panel-bg);
+            border-radius: 15px;
+            box-shadow: 0 0 30px rgba(108, 99, 255, 0.2);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .game-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        
+        .game-title {
+            font-size: 2.5rem;
+            margin: 0;
+            background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 10px rgba(108, 99, 255, 0.3);
+        }
+        
+        #gameCanvas {
+            display: block;
+            margin: 0 auto;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(108, 99, 255, 0.3);
+        }
+        
+        .controls {
+            margin-top: 2rem;
+            text-align: center;
+        }
+        
+        button {
+            background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
             color: white;
             border: none;
-            border-radius: 5px;
+            padding: 0.8rem 1.5rem;
+            margin: 0.5rem;
+            border-radius: 25px;
             cursor: pointer;
+            font-size: 1rem;
+            transition: transform 0.2s, box-shadow 0.2s;
         }
-        #scoreHistory {
-            margin-top: 20px;
-            width: 800px;
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(108, 99, 255, 0.4);
+        }
+        
+        .score-display {
+            font-size: 1.2rem;
+            margin: 1rem 0;
+            color: var(--text-color);
+            text-shadow: 0 0 5px rgba(108, 99, 255, 0.5);
+        }
+        
+        .leaderboard {
+            margin-top: 2rem;
+            padding: 1rem;
+            background: rgba(16, 16, 42, 0.6);
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .leaderboard h2 {
+            color: var(--secondary-color);
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+        
+        .leaderboard-list {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .leaderboard-item {
+            padding: 0.5rem;
+            margin: 0.5rem 0;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 5px;
+            transition: transform 0.2s;
+        }
+        
+        .leaderboard-item:hover {
+            transform: translateX(5px);
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        footer {
+            margin-top: 30px;
+            width: 100%;
+            text-align: center;
+            padding: 20px;
+            color: var(--secondary-color);
+            font-size: 0.9rem;
+            position: relative;
+        }
+        
+        footer::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 50%;
+            height: 1px;
+            background: linear-gradient(to right, 
+                transparent, 
+                var(--secondary-color), 
+                transparent);
+        }
+        
+        .social-icons {
+            margin-top: 15px;
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+        }
+        
+        .social-icons a {
+            color: var(--secondary-color);
+            font-size: 1.5rem;
+            transition: all 0.3s ease;
+        }
+        
+        .social-icons a:hover {
+            color: var(--accent-color);
+            transform: translateY(-3px);
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="ui-container">
-            <button id="connectButton">Connect Wallet</button>
-            <div id="walletInfo">Not Connected</div>
+    <div id="celestial-background">
+        <div id="stars"></div>
+        <div id="nebula"></div>
+    </div>
+
+    <div class="game-container">
+        <div class="game-header">
+            <h1 class="game-title">Celestial Snake Game</h1>
         </div>
-        <div id="game"></div>
-        <div id="scoreHistory">
-            <h3>Your Past Scores</h3>
-            <div id="scores"></div>
+        
+        <canvas id="gameCanvas"></canvas>
+        
+        <div class="controls">
+            <div class="score-display">Score: <span id="score">0</span></div>
+            <button id="startButton">Start Game</button>
+            <button id="connectWallet">Connect Wallet</button>
+        </div>
+
+        <div class="leaderboard">
+            <h2>Leaderboard</h2>
+            <ul id="leaderboardList" class="leaderboard-list"></ul>
         </div>
     </div>
+
+    <footer>
+        <p>© 2023 Celestial Snake Game | Powered by Monad Blockchain</p>
+        <div class="social-icons">
+            <a href="#"><i class="fab fa-twitter"></i></a>
+            <a href="#"><i class="fab fa-discord"></i></a>
+            <a href="#"><i class="fab fa-github"></i></a>
+        </div>
+    </footer>
+
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
-    <script src="./src/blockchain.js"></script>
-    <script src="./src/game.js"></script>
+    <script src="src/background.js"></script>
+    <script src="src/game.js"></script>
+    <script src="src/blockchain.js"></script>
 </body>
 </html>

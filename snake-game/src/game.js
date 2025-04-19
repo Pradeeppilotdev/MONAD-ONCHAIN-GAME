@@ -41,9 +41,15 @@ function preload() {
 }
 
 function create() {
-    // Create a custom grey grid background
+    // Create a clean, modern background
     const graphics = this.add.graphics();
-    graphics.lineStyle(1, 0x666666, 0.3);
+    
+    // Fill with a nice dark blue background
+    graphics.fillStyle(0x0a192f, 1);
+    graphics.fillRect(0, 0, config.width, config.height);
+    
+    // Add subtle grid lines
+    graphics.lineStyle(1, 0x64ffda, 0.15);
     
     // Draw vertical grid lines
     for (let x = 0; x <= config.width; x += GRID_SIZE) {
@@ -62,26 +68,30 @@ function create() {
     // Initialize snake head with direction
     snake = this.add.sprite(400, 300, 'molandak');
     snake.setScale(0.25);
-    snake.direction = { x: 1, y: 0 }; // Set initial direction
+    snake.direction = { x: 1, y: 0 };
     snakeSegments = [snake];
 
     // Initialize food
     moyaki = this.add.sprite(200, 200, 'moyaki');
     moyaki.setScale(0.25);
 
-    // Add score text
+    // Add score text with modern styling
     scoreText = this.add.text(16, 16, 'Score: 0', { 
         fontSize: '32px', 
-        fill: '#fff' 
+        fill: '#64ffda',
+        fontFamily: 'Arial, sans-serif',
+        fontWeight: 'bold'
     });
 
     // Setup keyboard controls
     cursors = this.input.keyboard.createCursorKeys();
 
-    // Add pause/start text
+    // Add pause/start text with modern styling
     pauseText = this.add.text(400, 300, 'Connect Wallet to Play', {
         fontSize: '48px',
-        fill: '#fff',
+        fill: '#64ffda',
+        fontFamily: 'Arial, sans-serif',
+        fontWeight: 'bold',
         align: 'center'
     }).setOrigin(0.5);
 
@@ -93,12 +103,12 @@ function create() {
 
     eatSound = this.sound.add('eat', {
         volume: 1.5,
-        rate: 1.95  // 2x speed
+        rate: 1.95
     });
 
     chogSound = this.sound.add('chog-eat', {
         volume: 3.5,
-        rate: 1.25 // 2x speed
+        rate: 1.25
     });
 
     // Start background music when game starts
