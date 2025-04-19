@@ -296,7 +296,7 @@ if (window.ethereum) {
 }
 
 // Initially disable game until wallet is connected
-document.getElementById('game').style.opacity = '0.5';
+document.getElementById('game').style.opacity = '0.76';
 
 // Listen for network changes
 if (window.ethereum) {

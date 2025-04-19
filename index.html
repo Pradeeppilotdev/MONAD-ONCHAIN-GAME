@@ -72,9 +72,13 @@
             margin: 20px 0;
             touch-action: none;
             -webkit-touch-callout: none;
-            background: rgba(1, 1, 19, 0.95);
+            background-color: #ffffff;
             border-radius: 10px;
             box-shadow: 0 0 20px rgba(107, 99, 255, 0.629);
+            transform: translateZ(0);
+            will-change: transform;
+            backface-visibility: hidden;
+            perspective: 1000px;
         }
         
         .ui-container {
