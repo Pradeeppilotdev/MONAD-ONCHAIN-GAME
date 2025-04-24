@@ -14,6 +14,7 @@
             --background-color: #0a0a2a;
             --text-color: #ffffff;
             --panel-bg: rgba(16, 16, 42, 0.8);
+            --neon-glow: 0 0 10px #6c63ff, 0 0 20px #6c63ff, 0 0 30px #4a90e2;
         }
         
         body { 
@@ -433,6 +434,34 @@
             margin: 10px 0;
             text-align: center;
         }
+
+        .game-title {
+            flex: 1;
+            text-align: center;
+            margin-left: -50px;
+            position: relative;
+        }
+
+        .game-title p {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #fff;
+            text-shadow: var(--neon-glow);
+            animation: neonPulse 2s infinite alternate;
+            margin: 0;
+            letter-spacing: 2px;
+            position: relative;
+            left: -5px;
+        }
+
+        @keyframes neonPulse {
+            from {
+                text-shadow: 0 0 10px #6c63ff, 0 0 20px #6c63ff, 0 0 30px #4a90e2;
+            }
+            to {
+                text-shadow: 0 0 20px #6c63ff, 0 0 30px #6c63ff, 0 0 40px #4a90e2;
+            }
+        }
     </style>
 </head>
 <body>
@@ -446,6 +475,9 @@
             <div class="wallet-buttons">
                 <button id="connectButton">Connect Wallet</button>
                 <button id="disconnectButton" style="display: none;">Disconnect Wallet</button>
+            </div>
+            <div class="game-title">
+                <p>MONAD XENZIA</p>
             </div>
             <div id="walletInfo">Not Connected</div>
         </div>
