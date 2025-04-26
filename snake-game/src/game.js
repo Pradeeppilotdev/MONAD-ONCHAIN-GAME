@@ -337,6 +337,13 @@ function endGame(scene) {
         pauseText.setVisible(false);
     }
 
+    // Make the page scrollable again when game ends
+    document.body.classList.remove('game-active');
+    document.body.style.position = '';
+    document.body.style.top = '';
+    document.body.style.width = '';
+    document.body.style.overflow = 'auto';
+
     scene.input.once('pointerdown', async () => {
         if (!window.ethereum || !window.ethereum.selectedAddress) {
             gameOverText.setText('Wallet not connected!\nPlease connect wallet');
