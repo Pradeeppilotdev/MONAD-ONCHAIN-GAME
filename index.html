@@ -382,10 +382,20 @@
         }
 
         /* Game state dependent styles */
+        @media (max-width: 1024px) {
+            body.game-active {
+                touch-action: none;
+                overflow: hidden;
+                position: fixed;
+                width: 100%;
+                height: 100%;
+            }
+        }
+
         body.game-active {
             touch-action: none;
-            overflow: hidden;
-            position: fixed; /* This prevents any bouncing/scrolling */
+            overflow: auto;
+            position: static;
             width: 100%;
             height: 100%;
         }
@@ -731,29 +741,72 @@
             }
         }
 
-        // Update the setGameState function
-        function setGameState(active) {
-            isGameActive = active;
-            document.body.classList.toggle('game-active', active);
-            updateViewport(active); // Add this line to update viewport
+        // Update the scrollToGame function to handle different screen sizes
+        function scrollToGame() {
+            const gameElement = document.getElementById('game');
+            const gamePosition = gameElement.getBoundingClientRect();
+            const scrollPosition = window.pageYOffset + gamePosition.top - 40;
+            
+            // For larger screens, just scroll to position
+            if (window.innerWidth > 1024) {
+                window.scrollTo({
+                    top: scrollPosition,
+                    behavior: 'smooth'
+                });
+            } else {
+                // For smaller screens, use the existing behavior
+                window.scrollTo({
+                    top: scrollPosition,
+                    behavior: 'smooth'
+                });
+            }
         }
-
-        // Initialize viewport in scrollable state
-        updateViewport(false);
 
         // Update the space button handler
         document.getElementById('spaceBtn').addEventListener('click', (e) => {
             e.preventDefault();
             setGameState(!isGameActive);
             emulateKey(controlMap['spaceBtn'], 'keydown');
+            scrollToGame(); // Add this line to scroll to the game
         });
 
         // Update keyboard space press handler
         window.addEventListener('keydown', (e) => {
             if (e.key === ' ' || e.code === 'Space') {
                 setGameState(!isGameActive);
+                scrollToGame(); // Add this line to scroll to the game
             }
         });
+
+        // Modify the setGameState function to maintain scroll position while still disabling other scrolling
+        function setGameState(active) {
+            isGameActive = active;
+            document.body.classList.toggle('game-active', active);
+            updateViewport(active);
+            
+            if (active) {
+                // When game becomes active, scroll to it first
+                scrollToGame();
+                
+                // Only apply fixed position for smaller screens
+                if (window.innerWidth <= 1024) {
+                    setTimeout(() => {
+                        if (isGameActive) { // Check if still active after delay
+                            document.body.style.position = 'fixed';
+                            document.body.style.top = `-${window.scrollY}px`;
+                            document.body.style.width = '100%';
+                        }
+                    }, 500); // Delay to allow smooth scrolling to complete
+                }
+            } else {
+                // When game becomes inactive, restore scroll position
+                const scrollY = document.body.style.top;
+                document.body.style.position = '';
+                document.body.style.top = '';
+                document.body.style.width = '';
+                window.scrollTo(0, parseInt(scrollY || '0') * -1);
+            }
+        }
 
         // Handle game over
         function handleGameOver() {
