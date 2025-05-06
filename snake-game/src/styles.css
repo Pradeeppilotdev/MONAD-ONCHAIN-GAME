@@ -35,7 +35,21 @@ body {
     transition: background-color 0.3s;
 }
 
-#connectButton:hover, #disconnectButton:hover {
+#connectButton:disabled {
+    background: #ffb3b3;
+    color: #fff;
+    opacity: 1;
+    cursor: default;
+    pointer-events: none;
+}
+
+#connectButton:disabled:hover {
+    background: #ffb3b3;
+    color: #fff;
+    cursor: default;
+}
+
+#disconnectButton:hover {
     background: #993399;
 }
 

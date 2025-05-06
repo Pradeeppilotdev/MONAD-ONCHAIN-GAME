@@ -75,6 +75,8 @@ function create() {
     
     // Character selection UI
     if (!selectedCharacter) {
+        const connectBtn = document.getElementById('connectButton');
+        if (connectBtn) connectBtn.disabled = true;
         const centerX = config.width / 2;
         const centerY = config.height / 2;
         const spacing = 140;
@@ -86,7 +88,7 @@ function create() {
         ];
         const charSprites = [];
         // Add label
-        const selectText = this.add.text(centerX, centerY - 120, 'Choose Your Character', {
+        const selectText = this.add.text(centerX, centerY - 120, 'Choose Your Character to Connect Wallet', {
             fontSize: '36px',
             fill: '#fff',
             fontFamily: 'Arial, sans-serif',
@@ -97,40 +99,25 @@ function create() {
         charKeys.forEach((char, i) => {
             const sprite = this.add.sprite(centerX + (i - 1.5) * spacing, centerY, char.key);
             sprite.setScale(0.22);
-            // Set a circular hit area matching the scaled sprite size
             const radius = (sprite.width * 0.22) / 2;
             sprite.setInteractive(new Phaser.Geom.Circle(sprite.width / 2, sprite.height / 2, radius), Phaser.Geom.Circle.Contains);
-            // Add label below each sprite
             this.add.text(sprite.x, sprite.y + 90, char.label, {
                 fontSize: '20px', fill: '#64ffda', fontFamily: 'Arial, sans-serif', fontWeight: 'bold', align: 'center'
             }).setOrigin(0.5);
             sprite.on('pointerdown', () => {
                 selectedCharacter = char.key;
-                console.log('Selected character:', selectedCharacter);
-                // Remove selection UI
+                if (connectBtn) connectBtn.disabled = false;
                 selectText.destroy();
                 charSprites.forEach(s => s.destroy());
                 scene.children.list.filter(obj => obj.type === 'Text' && obj.y > centerY).forEach(obj => obj.destroy());
-                // Set pauseText appropriately based on wallet connection
                 if (typeof pauseText !== 'undefined' && pauseText) pauseText.destroy();
-                if (walletConnected) {
-                    pauseText = scene.add.text(400, 300, 'Press SPACE to Start', {
-                        fontSize: '48px',
-                        fill: '#64ffda',
-                        fontFamily: 'Arial, sans-serif',
-                        fontWeight: 'bold',
-                        align: 'center'
-                    }).setOrigin(0.5);
-                } else {
-                    pauseText = scene.add.text(400, 300, 'Connect Wallet to Play', {
-                        fontSize: '48px',
-                        fill: '#64ffda',
-                        fontFamily: 'Arial, sans-serif',
-                        fontWeight: 'bold',
-                        align: 'center'
-                    }).setOrigin(0.5);
-                }
-                // Start the game as normal
+                pauseText = scene.add.text(400, 300, 'Press SPACE to Start', {
+                    fontSize: '48px',
+                    fill: '#64ffda',
+                    fontFamily: 'Arial, sans-serif',
+                    fontWeight: 'bold',
+                    align: 'center'
+                }).setOrigin(0.5);
                 startGame.call(scene);
             });
             charSprites.push(sprite);
