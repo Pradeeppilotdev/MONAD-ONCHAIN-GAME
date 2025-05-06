@@ -29,10 +29,17 @@ const MIN_MOVE_DELAY = 40;      // Maximum speed (lower = faster)
 const SPEED_THRESHOLD = 200;    // Points at which speed increases
 const SPEED_INCREASE = 5;       // How many milliseconds faster per threshold
 
+// Add a global for selected character
+let selectedCharacter = null;
+
 function preload() {
-    this.load.image('molandak', 'snake-game/assets/molandak3.png');
+    this.load.image('keonehon', 'snake-game/assets/keonehon.png');
+    this.load.image('mouch', 'snake-game/assets/mouch.png');
+    this.load.image('vans', 'snake-game/assets/vans.png');
+    this.load.image('molandak', 'snake-game/assets/molandak3.png'); // default
     this.load.image('moyaki', 'snake-game/assets/moyaki3.png');
     this.load.image('chog', 'snake-game/assets/chog.png');
+    this.load.image('salmonad', 'snake-game/assets/salmonad.png'); // new special food
 
     // Load audio files
     this.load.audio('bgMusic', 'snake-game/assets/background-music.mp3');
@@ -41,6 +48,7 @@ function preload() {
 }
 
 function create() {
+    const scene = this;
     // Create a clean, modern background
     const graphics = this.add.graphics();
     
@@ -65,16 +73,98 @@ function create() {
     
     graphics.strokePath();
     
+    // Character selection UI
+    if (!selectedCharacter) {
+        const centerX = config.width / 2;
+        const centerY = config.height / 2;
+        const spacing = 140;
+        const charKeys = [
+            { key: 'keonehon', label: 'Keonehon' },
+            { key: 'mouch', label: 'Mouch' },
+            { key: 'vans', label: 'Vans' },
+            { key: 'molandak', label: 'molandak' }
+        ];
+        const charSprites = [];
+        // Add label
+        const selectText = this.add.text(centerX, centerY - 120, 'Choose Your Character', {
+            fontSize: '36px',
+            fill: '#fff',
+            fontFamily: 'Arial, sans-serif',
+            fontWeight: 'bold',
+            align: 'center'
+        }).setOrigin(0.5);
+        // Add character sprites
+        charKeys.forEach((char, i) => {
+            const sprite = this.add.sprite(centerX + (i - 1.5) * spacing, centerY, char.key);
+            sprite.setScale(0.22);
+            // Set a circular hit area matching the scaled sprite size
+            const radius = (sprite.width * 0.22) / 2;
+            sprite.setInteractive(new Phaser.Geom.Circle(sprite.width / 2, sprite.height / 2, radius), Phaser.Geom.Circle.Contains);
+            // Add label below each sprite
+            this.add.text(sprite.x, sprite.y + 90, char.label, {
+                fontSize: '20px', fill: '#64ffda', fontFamily: 'Arial, sans-serif', fontWeight: 'bold', align: 'center'
+            }).setOrigin(0.5);
+            sprite.on('pointerdown', () => {
+                selectedCharacter = char.key;
+                console.log('Selected character:', selectedCharacter);
+                // Remove selection UI
+                selectText.destroy();
+                charSprites.forEach(s => s.destroy());
+                scene.children.list.filter(obj => obj.type === 'Text' && obj.y > centerY).forEach(obj => obj.destroy());
+                // Set pauseText appropriately based on wallet connection
+                if (typeof pauseText !== 'undefined' && pauseText) pauseText.destroy();
+                if (walletConnected) {
+                    pauseText = scene.add.text(400, 300, 'Press SPACE to Start', {
+                        fontSize: '48px',
+                        fill: '#64ffda',
+                        fontFamily: 'Arial, sans-serif',
+                        fontWeight: 'bold',
+                        align: 'center'
+                    }).setOrigin(0.5);
+                } else {
+                    pauseText = scene.add.text(400, 300, 'Connect Wallet to Play', {
+                        fontSize: '48px',
+                        fill: '#64ffda',
+                        fontFamily: 'Arial, sans-serif',
+                        fontWeight: 'bold',
+                        align: 'center'
+                    }).setOrigin(0.5);
+                }
+                // Start the game as normal
+                startGame.call(scene);
+            });
+            charSprites.push(sprite);
+        });
+        return; // Don't start the game until a character is selected
+    }
+    // If already selected, start game
+    startGame.call(this);
+}
+
+function startGame() {
+    // Create a clean, modern background
+    const graphics = this.add.graphics();
+    graphics.fillStyle(0x0a192f, 1);
+    graphics.fillRect(0, 0, config.width, config.height);
+    graphics.lineStyle(1, 0x64ffda, 0.15);
+    for (let x = 0; x <= config.width; x += GRID_SIZE) {
+        graphics.moveTo(x, 0);
+        graphics.lineTo(x, config.height);
+    }
+    for (let y = 0; y <= config.height; y += GRID_SIZE) {
+        graphics.moveTo(0, y);
+        graphics.lineTo(config.width, y);
+    }
+    graphics.strokePath();
     // Initialize snake head with direction
-    snake = this.add.sprite(400, 300, 'molandak');
+    snake = this.add.sprite(400, 300, selectedCharacter || 'molandak');
+    console.log('Creating snake with:', selectedCharacter || 'molandak');
     snake.setScale(0.25);
     snake.direction = { x: 1, y: 0 };
     snakeSegments = [snake];
-
     // Initialize food
     moyaki = this.add.sprite(200, 200, 'moyaki');
     moyaki.setScale(0.25);
-
     // Add score text with modern styling
     scoreText = this.add.text(16, 16, 'Score: 0', { 
         fontSize: '32px', 
@@ -82,35 +172,40 @@ function create() {
         fontFamily: 'Arial, sans-serif',
         fontWeight: 'bold'
     });
-
     // Setup keyboard controls
     cursors = this.input.keyboard.createCursorKeys();
-
     // Add pause/start text with modern styling
-    pauseText = this.add.text(400, 300, 'Connect Wallet to Play', {
-        fontSize: '48px',
-        fill: '#64ffda',
-        fontFamily: 'Arial, sans-serif',
-        fontWeight: 'bold',
-        align: 'center'
-    }).setOrigin(0.5);
-
+    if (typeof pauseText !== 'undefined' && pauseText) pauseText.destroy();
+    if (walletConnected) {
+        pauseText = this.add.text(400, 300, 'Press SPACE to Start', {
+            fontSize: '48px',
+            fill: '#64ffda',
+            fontFamily: 'Arial, sans-serif',
+            fontWeight: 'bold',
+            align: 'center'
+        }).setOrigin(0.5);
+    } else {
+        pauseText = this.add.text(400, 300, 'Connect Wallet to Play', {
+            fontSize: '48px',
+            fill: '#64ffda',
+            fontFamily: 'Arial, sans-serif',
+            fontWeight: 'bold',
+            align: 'center'
+        }).setOrigin(0.5);
+    }
     // Initialize audio with rate modification
     backgroundMusic = this.sound.add('bgMusic', {
         volume: 0.45,
         loop: true
     });
-
     eatSound = this.sound.add('eat', {
         volume: 1.5,
         rate: 1.95
     });
-
     chogSound = this.sound.add('chog-eat', {
         volume: 3.5,
         rate: 1.25
     });
-
     // Start background music when game starts
     this.input.keyboard.on('keydown-SPACE', function() {
         if (walletConnected) {
@@ -122,7 +217,6 @@ function create() {
             pauseText.setText('Connect Wallet to Play');
         }
     }, this);
-
     // Listen for wallet connection event
     window.addEventListener('walletConnected', function() {
         walletConnected = true;
@@ -255,7 +349,7 @@ function update(time) {
         if (Math.abs(snake.targetX - moyaki.x) < GRID_SIZE && Math.abs(snake.targetY - moyaki.y) < GRID_SIZE) {
             // Add new segment
             const lastSegment = snakeSegments[snakeSegments.length - 1];
-            const newSegment = scene.add.sprite(lastSegment.x, lastSegment.y, 'molandak');
+            const newSegment = scene.add.sprite(lastSegment.x, lastSegment.y, selectedCharacter || 'molandak');
             
             // Calculate new scale based on current score
             const currentScale = calculateScale(score);
@@ -280,12 +374,20 @@ function update(time) {
                 chogSound.play();
                 score += 20;
                 moyaki.setTexture('moyaki');
+            } else if (moyaki.texture.key === 'salmonad') {
+                eatSound.play();
+                score += 30;
+                moyaki.setTexture('moyaki');
             } else {
                 eatSound.play();
                 score += 10;
-                // Check if next food should be chog (at score multiples of 50)
+                // Check if next food should be chog (at score multiples of 100)
                 if (score % 100 === 0) {
                     moyaki.setTexture('chog');
+                }
+                // Check if next food should be salmonad (at score multiples of 530)
+                if (score % 530 === 0) {
+                    moyaki.setTexture('salmonad');
                 }
             }
             
@@ -443,6 +545,9 @@ function restartGame(scene) {
     // Reset all scales to base scale
     snakeSegments.forEach(segment => segment.setScale(BASE_SCALE));
     moyaki.setScale(BASE_SCALE);
+
+    // Reset snake texture to selectedCharacter
+    snake.setTexture(selectedCharacter || 'molandak');
 }
 
 // Make sure restartGame is available globally
