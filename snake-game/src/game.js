@@ -76,7 +76,14 @@ function create() {
     // Character selection UI
     if (!selectedCharacter) {
         const connectBtn = document.getElementById('connectButton');
-        if (connectBtn) connectBtn.disabled = true;
+        if (connectBtn) {
+            connectBtn.disabled = true;
+            connectBtn.textContent = 'Disabled';
+            connectBtn.style.background = '#ffb3b3';
+            connectBtn.style.color = '#fff';
+            connectBtn.style.opacity = '0.7';
+            connectBtn.style.cursor = 'none';
+        }
         const centerX = config.width / 2;
         const centerY = config.height / 2;
         const spacing = 140;
@@ -88,7 +95,7 @@ function create() {
         ];
         const charSprites = [];
         // Add label
-        const selectText = this.add.text(centerX, centerY - 120, 'Choose Your Character to Connect Wallet', {
+        const selectText = this.add.text(centerX, centerY - 120, 'Choose Your Character & Connect Wallet', {
             fontSize: '36px',
             fill: '#fff',
             fontFamily: 'Arial, sans-serif',
@@ -106,7 +113,14 @@ function create() {
             }).setOrigin(0.5);
             sprite.on('pointerdown', () => {
                 selectedCharacter = char.key;
-                if (connectBtn) connectBtn.disabled = false;
+                if (connectBtn) {
+                    connectBtn.disabled = false;
+                    connectBtn.textContent = 'Connect Wallet';
+                    connectBtn.style.background = '';
+                    connectBtn.style.color = '';
+                    connectBtn.style.opacity = '';
+                    connectBtn.style.cursor = '';
+                }
                 selectText.destroy();
                 charSprites.forEach(s => s.destroy());
                 scene.children.list.filter(obj => obj.type === 'Text' && obj.y > centerY).forEach(obj => obj.destroy());
