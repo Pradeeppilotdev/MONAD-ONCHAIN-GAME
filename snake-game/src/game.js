@@ -32,6 +32,15 @@ const SPEED_INCREASE = 5;       // How many milliseconds faster per threshold
 // Add a global for selected character
 let selectedCharacter = null;
 
+// Add globals for fatnadsjohn logic
+let fatnadsjohn = null;
+let fatnadsjohnActive = false;
+let fatnadsjohnTimer = 0;
+let fatnadsjohnAppearTime = 0;
+let fatnadsjohnMoveDir = { x: 0, y: 0 };
+let fatnadsjohnVanishTimeout = null;
+let fatnadsjohnNextAppear = 0;
+
 function preload() {
     this.load.image('keonehon', 'snake-game/assets/keonehon.png');
     this.load.image('mouch', 'snake-game/assets/mouch.png');
@@ -40,6 +49,7 @@ function preload() {
     this.load.image('moyaki', 'snake-game/assets/moyaki3.png');
     this.load.image('chog', 'snake-game/assets/chog.png');
     this.load.image('salmonad', 'snake-game/assets/salmonad.png'); // new special food
+    this.load.image('fatnadsjohn', 'snake-game/assets/fatnadsjohn.png');
 
     // Load audio files
     this.load.audio('bgMusic', 'snake-game/assets/background-music.mp3');
@@ -140,6 +150,14 @@ function create() {
     }
     // If already selected, start game
     startGame.call(this);
+
+    fatnadsjohn = null;
+    fatnadsjohnActive = false;
+    fatnadsjohnTimer = 0;
+    fatnadsjohnAppearTime = 0;
+    fatnadsjohnMoveDir = { x: 0, y: 0 };
+    fatnadsjohnVanishTimeout = null;
+    fatnadsjohnNextAppear = this.time.now + Phaser.Math.Between(120000, 180000); // 2-3 min
 }
 
 function startGame() {
@@ -395,6 +413,57 @@ function update(time) {
             scoreText.setText('Score: ' + score);
         }
     }
+
+    // --- FATNADSJOHN LOGIC ---
+    if (!fatnadsjohnActive && time > fatnadsjohnNextAppear) {
+        // Spawn at random edge
+        const edges = ['top', 'bottom', 'left', 'right'];
+        const edge = Phaser.Utils.Array.GetRandom(edges);
+        let x, y, dir;
+        if (edge === 'top') {
+            x = Phaser.Math.Between(0, 800);
+            y = 0;
+            dir = { x: 0, y: 1 };
+        } else if (edge === 'bottom') {
+            x = Phaser.Math.Between(0, 800);
+            y = 600;
+            dir = { x: 0, y: -1 };
+        } else if (edge === 'left') {
+            x = 0;
+            y = Phaser.Math.Between(0, 600);
+            dir = { x: 1, y: 0 };
+        } else {
+            x = 800;
+            y = Phaser.Math.Between(0, 600);
+            dir = { x: -1, y: 0 };
+        }
+        fatnadsjohn = this.add.sprite(x, y, 'fatnadsjohn');
+        fatnadsjohn.setScale(0.22);
+        fatnadsjohnActive = true;
+        fatnadsjohnAppearTime = time;
+        fatnadsjohnMoveDir = dir;
+        // Vanish after 5 seconds
+        fatnadsjohnVanishTimeout = setTimeout(() => {
+            if (fatnadsjohn) fatnadsjohn.destroy();
+            fatnadsjohn = null;
+            fatnadsjohnActive = false;
+            fatnadsjohnNextAppear = time + Phaser.Math.Between(120000, 180000); // 2-3 min
+        },  10000);
+    }
+    if (fatnadsjohnActive && fatnadsjohn) {
+        // Move more slowly
+        fatnadsjohn.x += fatnadsjohnMoveDir.x * 1; // reduced speed
+        fatnadsjohn.y += fatnadsjohnMoveDir.y * 1;
+        // Check collision with snake head
+        if (Math.abs((snake.x || 0) - fatnadsjohn.x) < GRID_SIZE && Math.abs((snake.y || 0) - fatnadsjohn.y) < GRID_SIZE) {
+            if (fatnadsjohnVanishTimeout) clearTimeout(fatnadsjohnVanishTimeout);
+            if (fatnadsjohn) fatnadsjohn.destroy();
+            fatnadsjohn = null;
+            fatnadsjohnActive = false;
+            endGame(this);
+            return;
+        }
+    }
 }
 
 // All your other functions (togglePause, endGame, restartGame, etc.)...
@@ -549,6 +618,16 @@ function restartGame(scene) {
 
     // Reset snake texture to selectedCharacter
     snake.setTexture(selectedCharacter || 'molandak');
+
+    // Reset fatnadsjohn state
+    if (fatnadsjohn) fatnadsjohn.destroy();
+    fatnadsjohn = null;
+    fatnadsjohnActive = false;
+    fatnadsjohnTimer = 0;
+    fatnadsjohnAppearTime = 0;
+    fatnadsjohnMoveDir = { x: 0, y: 0 };
+    fatnadsjohnVanishTimeout = null;
+    fatnadsjohnNextAppear = scene.time.now + Phaser.Math.Between(120000, 180000);
 }
 
 // Make sure restartGame is available globally
